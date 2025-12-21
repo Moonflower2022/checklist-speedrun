@@ -1,0 +1,15 @@
+{
+  "completeAndNext": "d",
+  "moveDown": "ArrowDown",
+  "moveUp": "ArrowUp",
+  "startTimer": "s",
+  "pauseTimer": "p",
+  "resetTimer": "x",
+  "resetAndRestart": "Shift+x",
+  "switchMode": "m",
+  "toggleTheme": "t",
+  "showHelp": "?",
+  "undo": "Meta+z",
+  "redo": "Meta+Shift+z"
+}
+

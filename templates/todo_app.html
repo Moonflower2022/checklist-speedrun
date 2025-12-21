@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist Speed</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #2c3e50;
+            --border-color: #d1d5db;
+            --current-item-bg: #e0f2fe;
+            --current-item-border: #0ea5e9;
+            --completed-color: #94a3b8;
+            --hover-bg: #f8fafc;
+            --accent-color: #0ea5e9;
+            --accent-hover: #0284c7;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e1e1e;
+            --text-color: #e4e4e7;
+            --border-color: #3f3f46;
+            --current-item-bg: #1e3a5f;
+            --current-item-border: #38bdf8;
+            --completed-color: #71717a;
+            --hover-bg: #27272a;
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .timer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 8px 14px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            min-width: 110px;
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        .mode-selector {
+            padding: 8px 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .mode-selector:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        .theme-toggle {
+            padding: 8px 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .todo-container {
+            margin-top: 20px;
+        }
+
+        .todo-item {
+            margin: 4px 0;
+            padding: 10px 12px;
+            border-radius: 4px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .todo-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .todo-item.current {
+            background-color: var(--current-item-bg);
+            border-left: 3px solid var(--current-item-border);
+            padding-left: 9px;
+        }
+
+        .todo-item.completed {
+            opacity: 0.7;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: var(--completed-color);
+        }
+
+        .todo-item.has-children {
+            font-weight: 600;
+        }
+
+        .todo-item.has-children .checkbox {
+            display: none;
+        }
+
+        .todo-text {
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .todo-text :deep(p) {
+            margin: 0;
+            display: inline;
+        }
+
+        .todo-text :deep(ul),
+        .todo-text :deep(ol) {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .children {
+            margin-left: 24px;
+            margin-top: 8px;
+        }
+
+        .help-modal, .completion-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-modal.active, .completion-modal.active {
+            display: flex;
+        }
+
+        .help-content {
+            background-color: var(--bg-color);
+            padding: 30px;
+            border-radius: 12px;
+            width: auto;
+            max-width: min(90vw, 600px);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .completion-content {
+            background-color: var(--bg-color);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .completion-content h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .completion-content p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: var(--text-color);
+        }
+
+        .completion-content button {
+            padding: 12px 30px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .completion-content button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .help-content h2 {
+            margin-bottom: 20px;
+        }
+
+        .help-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .help-content td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .help-content td:first-child {
+            font-weight: 600;
+            white-space: nowrap;
+            padding-right: 20px;
+        }
+
+        .close-help {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            background-color: var(--hover-bg);
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .status.success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .status.error {
+            background-color: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Checklist Speed</h1>
+        <div class="controls">
+            <div class="timer" id="timer">00:00:00</div>
+            <select class="mode-selector" id="modeSelector">
+                <option value="">Loading...</option>
+            </select>
+            <button class="theme-toggle" id="themeToggle">🌓</button>
+        </div>
+    </div>
+
+    <div class="status" id="status" style="display: none;"></div>
+
+    <div class="todo-container" id="todoContainer"></div>
+
+    <div class="help-modal" id="helpModal">
+        <div class="help-content">
+            <h2>Keyboard Shortcuts</h2>
+            <table id="shortcutsTable">
+            </table>
+            <button class="close-help" onclick="hideHelp()">Close</button>
+        </div>
+    </div>
+
+    <div class="completion-modal" id="completionModal">
+        <div class="completion-content">
+            <h2>🎉 Checklist Complete!</h2>
+            <p id="completionMessage"></p>
+            <button onclick="hideCompletion()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let checklistData = null;
+        let currentChecklistName = null;
+        let completedItems = new Set();
+        let currentItemId = null;
+        let shortcuts = {};
+        let timerStartTime = null;
+        let timerPausedTime = 0;
+        let timerInterval = null;
+        let isDarkMode = false;
+        
+        // Undo/redo history
+        let undoStack = [];
+        let redoStack = [];
+
+        // Load keyboard shortcuts
+        async function loadShortcuts() {
+            try {
+                const response = await fetch('/keyboard_shortcuts.json');
+                shortcuts = await response.json();
+                updateHelpModal();
+            } catch (e) {
+                console.error('Failed to load shortcuts:', e);
+                // Default shortcuts
+                shortcuts = {
+                    completeAndNext: ' ',
+                    moveDown: 'ArrowDown',
+                    moveUp: 'ArrowUp',
+                    startTimer: 's',
+                    pauseTimer: 'p',
+                    resetTimer: 'r',
+                    switchMode: 'm',
+                    toggleTheme: 't',
+                    showHelp: '?'
+                };
+                updateHelpModal();
+            }
+        }
+
+        function updateHelpModal() {
+            const table = document.getElementById('shortcutsTable');
+            const actions = {
+                completeAndNext: 'Complete & Next',
+                moveDown: 'Move Down',
+                moveUp: 'Move Up',
+                startTimer: 'Start Timer',
+                pauseTimer: 'Pause Timer',
+                resetTimer: 'Reset Timer',
+                resetAndRestart: 'Reset & Restart',
+                switchMode: 'Switch Mode',
+                toggleTheme: 'Toggle Theme',
+                showHelp: 'Show Help',
+                undo: 'Undo',
+                redo: 'Redo'
+            };
+
+            table.innerHTML = Object.entries(actions).map(([key, label]) =>
+                `<tr><td>${label}</td><td><kbd>${formatKey(shortcuts[key])}</kbd></td></tr>`
+            ).join('');
+        }
+
+        function formatKey(key) {
+            if (!key) return '';
+            if (key === ' ') return 'Space';
+            if (key.startsWith('Arrow')) return key.replace('Arrow', '') + ' Arrow';
+
+            // Handle modifier key combinations
+            if (key.includes('+')) {
+                return key.split('+').map(part => {
+                    if (part === 'Meta') return '⌘';
+                    if (part === 'Ctrl' || part === 'Control') return '⌃';
+                    if (part === 'Shift') return '⇧';
+                    if (part === 'Alt') return '⌥';
+                    return part.toUpperCase();
+                }).join('');
+            }
+
+            return key.toUpperCase();
+        }
+
+        // Theme management
+        function initTheme() {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            isDarkMode = prefersDark;
+            applyTheme();
+        }
+
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            applyTheme();
+        }
+
+        // Timer functions
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function updateTimer() {
+            if (timerStartTime === null) return;
+            const elapsed = Math.floor((Date.now() - timerStartTime) / 1000) + timerPausedTime;
+            document.getElementById('timer').textContent = formatTime(elapsed);
+        }
+
+        function startTimer() {
+            if (timerStartTime === null) {
+                timerStartTime = Date.now();
+            }
+            if (timerInterval === null) {
+                timerInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+            }
+        }
+
+        function pauseTimer() {
+            if (timerInterval !== null) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                if (timerStartTime !== null) {
+                    timerPausedTime += Math.floor((Date.now() - timerStartTime) / 1000);
+                    timerStartTime = null;
+                }
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timerStartTime = null;
+            timerPausedTime = 0;
+            document.getElementById('timer').textContent = '00:00:00';
+        }
+
+        function resetAndRestart() {
+            // Clear all completed items
+            completedItems.clear();
+            undoStack = [];
+            redoStack = [];
+
+            // Reset and start timer
+            resetTimer();
+            startTimer();
+
+            // Re-render and go to first item
+            renderChecklist();
+
+            // Set cursor to first incomplete item
+            const firstIncomplete = findFirstIncomplete();
+            if (firstIncomplete) {
+                setCurrentItem(firstIncomplete);
+            }
+        }
+
+        function getTotalTime() {
+            if (timerStartTime === null) return timerPausedTime;
+            return Math.floor((Date.now() - timerStartTime) / 1000) + timerPausedTime;
+        }
+
+        // Load checklists
+        async function loadChecklists() {
+            try {
+                const response = await fetch('/api/checklists');
+                const data = await response.json();
+                const selector = document.getElementById('modeSelector');
+                selector.innerHTML = data.checklists.map(c => 
+                    `<option value="${c.name}">${c.name}</option>`
+                ).join('');
+                if (data.checklists.length > 0) {
+                    loadChecklist(data.checklists[0].name);
+                }
+            } catch (e) {
+                console.error('Failed to load checklists:', e);
+            }
+        }
+
+        // Load a specific checklist
+        async function loadChecklist(name) {
+            try {
+                currentChecklistName = name;
+                completedItems.clear();
+                resetTimer();
+                currentItemId = null;
+                undoStack = [];
+                redoStack = [];
+
+                const response = await fetch(`/api/checklist/${name}`);
+                const data = await response.json();
+
+                // Handle case where JSON has a top-level key wrapping everything
+                const rawData = data.checklist;
+
+                if (typeof rawData === 'object' && Object.keys(rawData).length === 1) {
+                    checklistData = rawData[Object.keys(rawData)[0]];
+                } else {
+                    checklistData = rawData;
+                }
+
+                renderChecklist();
+
+                // Auto-start timer when checklist is loaded
+                startTimer();
+            } catch (e) {
+                console.error('Failed to load checklist:', e);
+                showStatus('Failed to load checklist', 'error');
+            }
+        }
+
+        // Generate unique ID for each item
+        function generateItemId(parentPath = []) {
+            return parentPath.join('::');
+        }
+        
+        // Check if an item text is wrapped in pipes (should be ignored in navigation)
+        function isPipeWrapped(itemId) {
+            const path = itemId.split('::');
+            if (path.length === 0) return false;
+            const itemText = path[path.length - 1].trim();
+            return itemText.length >= 2 && itemText.startsWith('|') && itemText.endsWith('|');
+        }
+        
+        // Get item text from itemId
+        function getItemText(itemId) {
+            const path = itemId.split('::');
+            return path.length > 0 ? path[path.length - 1] : '';
+        }
+        
+        // Build a flat ordered list of all items (depth-first traversal)
+        // Uses Object.keys() which preserves insertion order in ES2015+
+        function buildOrderedItemList(parent = checklistData, path = [], list = []) {
+            if (!parent || typeof parent !== 'object') return list;
+            
+            // Object.keys() preserves insertion order - this is guaranteed in ES2015+
+            const keys = Object.keys(parent);
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const itemPath = [...path, key];
+                const itemId = generateItemId(itemPath);
+                const value = parent[key];
+                
+                list.push(itemId);
+                
+                // Recursively add children (maintains order within each level)
+                if (value !== null && value !== undefined && typeof value === 'object' && Object.keys(value).length > 0) {
+                    buildOrderedItemList(value, itemPath, list);
+                }
+            }
+            
+            return list;
+        }
+
+        // Check if an item is completed (recursive)
+        function isItemCompleted(item, path = []) {
+            const itemId = generateItemId(path);
+
+            // Leaf node (null value) - check if it's in completedItems set
+            if (item === null || item === undefined) {
+                return completedItems.has(itemId);
+            }
+
+            // If it's not an object, treat as leaf
+            if (typeof item !== 'object') {
+                return completedItems.has(itemId);
+            }
+
+            const keys = Object.keys(item);
+            if (keys.length === 0) return true;
+
+            // Parent node - check if it was manually completed first
+            // (This handles parents with only pipe-wrapped children that user manually completed)
+            if (completedItems.has(itemId)) {
+                return true;
+            }
+
+            // Otherwise, check if all non-pipe-wrapped children are completed (auto-completion)
+            // Pipe-wrapped items are ignored in completion logic
+            let hasNonPipeChild = false;
+            for (const key of keys) {
+                const childPath = [...path, key];
+                const childId = generateItemId(childPath);
+
+                // Skip pipe-wrapped items when checking parent completion
+                if (isPipeWrapped(childId)) {
+                    continue;
+                }
+
+                hasNonPipeChild = true;
+
+                if (!isItemCompleted(item[key], childPath)) {
+                    return false;
+                }
+            }
+
+            // If all children are pipe-wrapped, parent is not auto-completed
+            // (but can be manually completed, checked above)
+            if (!hasNonPipeChild) {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Render checklist
+        function renderChecklist() {
+            const container = document.getElementById('todoContainer');
+            const previousCurrentId = currentItemId;
+            container.innerHTML = '';
+            
+            if (!checklistData) return;
+            
+            const items = renderItems(checklistData);
+            container.appendChild(items);
+            
+            // Restore current item or set first incomplete
+            if (previousCurrentId && document.querySelector(`[data-item-id="${previousCurrentId}"]`)) {
+                setCurrentItem(previousCurrentId);
+            } else {
+                const firstIncomplete = findFirstIncomplete();
+                if (firstIncomplete) {
+                    setCurrentItem(firstIncomplete);
+                }
+            }
+        }
+
+        function findFirstIncomplete(parent = checklistData, path = []) {
+            if (!parent || typeof parent !== 'object') return null;
+
+            // Object.keys() preserves insertion order - iterate in order
+            const keys = Object.keys(parent);
+
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const itemPath = [...path, key];
+                const itemId = generateItemId(itemPath);
+                const childItem = parent[key];
+
+                // Skip items wrapped in pipes
+                if (isPipeWrapped(itemId)) {
+                    continue;
+                }
+
+                // Check if this is a leaf node (null or not an object)
+                const isLeaf = childItem === null || childItem === undefined || typeof childItem !== 'object' || Object.keys(childItem).length === 0;
+
+                if (isLeaf) {
+                    if (!completedItems.has(itemId)) {
+                        return itemId;
+                    }
+                } else {
+                    // Parent node - recursively check children first
+                    const found = findFirstIncomplete(childItem, itemPath);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function renderItems(data, path = []) {
+            const container = document.createElement('div');
+
+            // Use Object.keys() to preserve insertion order (guaranteed in ES2015+)
+            const keys = Object.keys(data);
+
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const value = data[key];
+                const itemPath = [...path, key];
+                const itemId = generateItemId(itemPath);
+                // Check if this is a parent (has children) - value is an object with keys and not null
+                const hasChildren = value !== null && value !== undefined && typeof value === 'object' && Object.keys(value).length > 0;
+                const isCompleted = isItemCompleted(value, itemPath);
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'todo-item';
+                itemDiv.dataset.itemId = itemId;
+                if (hasChildren) itemDiv.classList.add('has-children');
+                if (isCompleted) itemDiv.classList.add('completed');
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'todo-text';
+                // Parse markdown and strip outer <p> tags if present
+                let markdownHtml = marked.parse(key);
+                if (markdownHtml.trim().startsWith('<p>') && markdownHtml.trim().endsWith('</p>')) {
+                    markdownHtml = markdownHtml.trim().slice(3, -4);
+                }
+                textDiv.innerHTML = markdownHtml;
+                itemDiv.appendChild(textDiv);
+
+                if (hasChildren) {
+                    const childrenDiv = document.createElement('div');
+                    childrenDiv.className = 'children';
+                    childrenDiv.appendChild(renderItems(value, itemPath));
+                    itemDiv.appendChild(childrenDiv);
+                }
+
+                // Make items clickable if: (1) leaf OR (2) parent with only pipe-wrapped children, AND (3) not pipe-wrapped itself
+                const hasNonPipe = hasChildren ? hasNonPipeChildrenDirect(value, itemPath) : false;
+                const canClick = !isPipeWrapped(itemId) && (!hasChildren || !hasNonPipe);
+
+                if (canClick) {
+                    itemDiv.style.cursor = 'pointer';
+                    itemDiv.addEventListener('click', () => {
+                        toggleItem(itemId, itemPath);
+                    });
+                }
+
+                container.appendChild(itemDiv);
+            }
+
+            return container;
+        }
+
+        function toggleItem(itemId, path, addToHistory = true, moveNext = true) {
+            const wasCompleted = completedItems.has(itemId);
+
+            if (wasCompleted) {
+                completedItems.delete(itemId);
+                if (addToHistory) {
+                    undoStack.push({ type: 'uncomplete', itemId: itemId });
+                    redoStack = [];
+                }
+            } else {
+                completedItems.add(itemId);
+                if (addToHistory) {
+                    undoStack.push({ type: 'complete', itemId: itemId });
+                    redoStack = [];
+                }
+                if (moveNext) {
+                    moveToNextInContext();
+                }
+            }
+            renderChecklist();
+            checkCompletion();
+        }
+        
+        function undoAction() {
+            if (undoStack.length === 0) return;
+            
+            const action = undoStack.pop();
+            
+            if (action.type === 'complete') {
+                // Undo a complete action - uncomplete the item
+                completedItems.delete(action.itemId);
+                redoStack.push({ type: 'complete', itemId: action.itemId });
+            } else {
+                // Undo an uncomplete action - complete the item again
+                completedItems.add(action.itemId);
+                redoStack.push({ type: 'uncomplete', itemId: action.itemId });
+            }
+            
+            setCurrentItem(action.itemId);
+            renderChecklist();
+            checkCompletion();
+        }
+        
+        function redoAction() {
+            if (redoStack.length === 0) return;
+
+            const action = redoStack.pop();
+
+            if (action.type === 'complete') {
+                completedItems.add(action.itemId);
+                undoStack.push({ type: 'complete', itemId: action.itemId });
+            } else {
+                completedItems.delete(action.itemId);
+                undoStack.push({ type: 'uncomplete', itemId: action.itemId });
+            }
+
+            setCurrentItem(action.itemId);
+            renderChecklist();
+            checkCompletion();
+        }
+
+        function checkCompletion() {
+            console.log('✅ CHECK COMPLETION called');
+            console.log('  checklistData exists:', !!checklistData);
+
+            if (checklistData) {
+                const isComplete = isItemCompleted(checklistData, []);
+                console.log('  Full checklist completed:', isComplete);
+
+                if (isComplete) {
+                    console.log('  🎉 CHECKLIST COMPLETE! Pausing timer and logging...');
+                    pauseTimer();
+                    const timeSeconds = getTotalTime();
+                    console.log('  Time to log:', timeSeconds, 'seconds');
+                    logTime(timeSeconds);
+                }
+            }
+        }
+
+        async function logTime(timeSeconds) {
+            console.log('📊 LOG TIME called');
+            console.log('  Checklist name:', currentChecklistName);
+            console.log('  Time (seconds):', timeSeconds);
+
+            try {
+                const response = await fetch('/api/log-time', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        checklist_name: currentChecklistName,
+                        time_seconds: timeSeconds
+                    })
+                });
+
+                console.log('  Response status:', response.status);
+                const data = await response.json();
+                console.log('  Response data:', data);
+
+                if (data.success) {
+                    showCompletion(data.message);
+                } else {
+                    showStatus(`Error: ${data.error}`, 'error');
+                }
+            } catch (e) {
+                console.error('  Error logging time:', e);
+                showStatus(`Error logging time: ${e.message}`, 'error');
+            }
+        }
+
+        function showStatus(message, type = '') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        function setCurrentItem(itemId) {
+            currentItemId = itemId;
+            document.querySelectorAll('.todo-item').forEach(item => {
+                item.classList.remove('current');
+                if (item.dataset.itemId === itemId) {
+                    item.classList.add('current');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        // Move to next item in the ordered flat list (handles nested items correctly)
+        function moveToNextInContext() {
+            if (!currentItemId) {
+                const firstIncomplete = findFirstIncomplete();
+                if (firstIncomplete) setCurrentItem(firstIncomplete);
+                return;
+            }
+            
+            // Build ordered list of all items
+            const allItems = buildOrderedItemList();
+            
+            // Filter to only incomplete, non-pipe-wrapped, actionable items (leaf nodes that can be completed)
+            const validItems = allItems.filter(id => {
+                if (isPipeWrapped(id)) return false;
+                if (isItemCompletedById(id)) return false;
+                
+                // Check if it's a leaf node (can be completed) - not a parent with children
+                const path = id.split('::');
+                let current = checklistData;
+                for (const key of path) {
+                    if (!current || typeof current !== 'object') return false;
+                    current = current[key];
+                }
+                // Leaf node if current is null/undefined or empty object
+                const isLeaf = current === null || current === undefined || typeof current !== 'object' || Object.keys(current).length === 0;
+                return isLeaf;
+            });
+            
+            const currentIndex = validItems.indexOf(currentItemId);
+            if (currentIndex < validItems.length - 1) {
+                // Move to next valid item
+                setCurrentItem(validItems[currentIndex + 1]);
+            } else if (validItems.length > 0) {
+                // Wrap around to first item
+                setCurrentItem(validItems[0]);
+            }
+        }
+        
+        function moveToNext() {
+            // Use the same ordered list approach
+            moveToNextInContext();
+        }
+
+        function moveDown() {
+            // Filter to navigable items: not pipe-wrapped AND (leaf OR parent with only pipe children)
+            const allItems = buildOrderedItemList().filter(id => {
+                if (isPipeWrapped(id)) return false;
+
+                // Check if it has non-pipe children
+                const hasNonPipe = hasNonPipeChildren(id);
+
+                // Include if: leaf (no children) OR parent with only pipe children
+                return !hasNonPipe;
+            });
+
+            const currentIndex = allItems.indexOf(currentItemId);
+
+            if (currentIndex < allItems.length - 1) {
+                setCurrentItem(allItems[currentIndex + 1]);
+            }
+        }
+
+        function moveUp() {
+            // Filter to navigable items: not pipe-wrapped AND (leaf OR parent with only pipe children)
+            const allItems = buildOrderedItemList().filter(id => {
+                if (isPipeWrapped(id)) return false;
+
+                // Check if it has non-pipe children
+                const hasNonPipe = hasNonPipeChildren(id);
+
+                // Include if: leaf (no children) OR parent with only pipe children
+                return !hasNonPipe;
+            });
+
+            const currentIndex = allItems.indexOf(currentItemId);
+
+            if (currentIndex > 0) {
+                setCurrentItem(allItems[currentIndex - 1]);
+            }
+        }
+
+        function isItemCompletedById(itemId) {
+            const path = itemId.split('::');
+            let current = checklistData;
+            for (const key of path) {
+                if (!current || typeof current !== 'object') return false;
+                current = current[key];
+            }
+            return isItemCompleted(current, path);
+        }
+        
+        function getItemByPath(path) {
+            let current = checklistData;
+            for (const key of path) {
+                if (!current || typeof current !== 'object') return null;
+                current = current[key];
+            }
+            return current;
+        }
+
+        // Check if an item has any non-pipe-wrapped children (by ID)
+        function hasNonPipeChildren(itemId) {
+            const path = itemId.split('::');
+            let current = checklistData;
+            for (const key of path) {
+                if (!current || typeof current !== 'object') return false;
+                current = current[key];
+            }
+
+            // If not an object or null, it's a leaf (no children)
+            if (!current || typeof current !== 'object' || Object.keys(current).length === 0) {
+                return false;
+            }
+
+            // Check if any children are NOT pipe-wrapped
+            for (const key of Object.keys(current)) {
+                const childPath = [...path, key];
+                const childId = generateItemId(childPath);
+                if (!isPipeWrapped(childId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Check if an item has any non-pipe-wrapped children (direct value check)
+        function hasNonPipeChildrenDirect(value, parentPath) {
+            // If not an object or null, it's a leaf (no children)
+            if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
+                return false;
+            }
+
+            // Check if any children are NOT pipe-wrapped
+            for (const key of Object.keys(value)) {
+                const childPath = [...parentPath, key];
+                const childId = generateItemId(childPath);
+                if (!isPipeWrapped(childId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function completeCurrentAndNext() {
+            if (!currentItemId) {
+                const firstIncomplete = findFirstIncomplete();
+                if (firstIncomplete) {
+                    setCurrentItem(firstIncomplete);
+                }
+                return;
+            }
+
+            const itemElement = document.querySelector(`[data-item-id="${currentItemId}"]`);
+            const hasChildren = itemElement?.classList.contains('has-children');
+            const isPipe = isPipeWrapped(currentItemId);
+            const hasNonPipe = hasNonPipeChildren(currentItemId);
+
+            // Can complete if: (1) leaf item OR (2) parent with ONLY pipe-wrapped children, AND (3) not pipe-wrapped itself
+            const canComplete = !isPipe && (!hasChildren || !hasNonPipe);
+
+            if (itemElement && canComplete) {
+                const path = currentItemId.split('::');
+                // Complete the item (without auto-moving to next)
+                if (!completedItems.has(currentItemId)) {
+                    toggleItem(currentItemId, path, true, false);
+                }
+            }
+
+            // Move down to next item (same as arrow key navigation)
+            moveDown();
+        }
+
+        function showHelp() {
+            document.getElementById('helpModal').classList.add('active');
+        }
+
+        function hideHelp() {
+            document.getElementById('helpModal').classList.remove('active');
+        }
+
+        function showCompletion(message) {
+            document.getElementById('completionMessage').textContent = message;
+            document.getElementById('completionModal').classList.add('active');
+            triggerConfetti();
+        }
+
+        function hideCompletion() {
+            document.getElementById('completionModal').classList.remove('active');
+        }
+
+        function triggerConfetti() {
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            function frame() {
+                const colors = ['#0ea5e9', '#38bdf8', '#7dd3fc', '#0284c7'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+                // Create confetti element
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '10px';
+                confetti.style.height = '10px';
+                confetti.style.backgroundColor = randomColor;
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.opacity = '1';
+                confetti.style.zIndex = '9999';
+                confetti.style.borderRadius = '50%';
+                confetti.style.pointerEvents = 'none';
+                document.body.appendChild(confetti);
+
+                const fall = confetti.animate([
+                    { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+                    { transform: `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+                ], {
+                    duration: 2000 + Math.random() * 1000,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                });
+
+                fall.onfinish = () => confetti.remove();
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }
+
+            // Trigger multiple bursts
+            for (let i = 0; i < 50; i++) {
+                setTimeout(frame, i * 30);
+            }
+        }
+
+        // Helper function to match keyboard events with shortcuts
+        function matchesShortcut(e, shortcut) {
+            if (!shortcut) return false;
+
+            // Handle modifier key combinations like "Meta+z" or "Meta+Shift+z"
+            if (shortcut.includes('+')) {
+                const parts = shortcut.split('+');
+                const hasCtrl = parts.includes('Ctrl') || parts.includes('Control');
+                const hasMeta = parts.includes('Meta') || parts.includes('Cmd');
+                const hasShift = parts.includes('Shift');
+                const hasAlt = parts.includes('Alt');
+
+                // Get the main key (last part)
+                const mainKey = parts[parts.length - 1].toLowerCase();
+                const eventKey = e.key.toLowerCase();
+
+                // Check if modifiers match EXACTLY
+                if (hasCtrl !== e.ctrlKey) return false;
+                if (hasMeta !== e.metaKey) return false;
+                if (hasShift !== e.shiftKey) return false;
+                if (hasAlt !== e.altKey) return false;
+
+                // Check if main key matches
+                return mainKey === eventKey;
+            }
+
+            // Simple key match (no modifiers)
+            const key = e.key === ' ' ? ' ' : e.key;
+            return key === shortcut;
+        }
+
+        // Keyboard event handler
+        document.addEventListener('keydown', (e) => {
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+                if (matchesShortcut(e, shortcuts.switchMode) || matchesShortcut(e, shortcuts.toggleTheme) || matchesShortcut(e, shortcuts.showHelp)) {
+                    e.preventDefault();
+                } else {
+                    return;
+                }
+            }
+
+            if (matchesShortcut(e, shortcuts.completeAndNext)) {
+                e.preventDefault();
+                completeCurrentAndNext();
+            } else if (matchesShortcut(e, shortcuts.moveDown)) {
+                e.preventDefault();
+                moveDown();
+            } else if (matchesShortcut(e, shortcuts.moveUp)) {
+                e.preventDefault();
+                moveUp();
+            } else if (matchesShortcut(e, shortcuts.startTimer)) {
+                e.preventDefault();
+                startTimer();
+            } else if (matchesShortcut(e, shortcuts.pauseTimer)) {
+                e.preventDefault();
+                pauseTimer();
+            } else if (matchesShortcut(e, shortcuts.undo)) {
+                e.preventDefault();
+                undoAction();
+            } else if (matchesShortcut(e, shortcuts.redo)) {
+                e.preventDefault();
+                redoAction();
+            } else if (matchesShortcut(e, shortcuts.resetAndRestart)) {
+                e.preventDefault();
+                resetAndRestart();
+            } else if (matchesShortcut(e, shortcuts.resetTimer)) {
+                e.preventDefault();
+                resetTimer();
+            } else if (matchesShortcut(e, shortcuts.switchMode)) {
+                e.preventDefault();
+                document.getElementById('modeSelector').focus();
+            } else if (matchesShortcut(e, shortcuts.toggleTheme)) {
+                e.preventDefault();
+                toggleTheme();
+            } else if (matchesShortcut(e, shortcuts.showHelp)) {
+                e.preventDefault();
+                showHelp();
+            }
+        });
+
+        // Close help modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('helpModal').classList.contains('active')) {
+                    e.preventDefault();
+                    hideHelp();
+                } else if (document.getElementById('completionModal').classList.contains('active')) {
+                    e.preventDefault();
+                    hideCompletion();
+                }
+            }
+        });
+
+        // Event listeners
+        document.getElementById('modeSelector').addEventListener('change', (e) => {
+            if (e.target.value) {
+                loadChecklist(e.target.value);
+                // Blur the dropdown so keyboard shortcuts work
+                e.target.blur();
+            }
+        });
+
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+        // Initialize
+        loadShortcuts();
+        initTheme();
+        loadChecklists();
+    </script>
+</body>
+</html>
+

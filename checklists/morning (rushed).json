@@ -1,0 +1,29 @@
+{
+  "morning (rushed)": {
+    "get ready": {
+      "get": {
+        "earbuds": null,
+        "glasses": null,
+        "keys": null,
+        "watch": null,
+        "cleats?": null,
+        "phone": null,
+        "water bottle": null
+      },
+      "do": {
+        "deodorant": null,
+        "moisturization": null,
+        "nose solution": null,
+        "powder": null,
+        "brush": null,
+        "eat gummies": null
+      }
+    },
+    "alarms": {
+      "look at calendar, set alarms for important things": null,
+      "if going to late events, turn off alarms saying to sleep": null
+    },
+    "glance at reminders & alexa for very important things": null
+  }
+}
+

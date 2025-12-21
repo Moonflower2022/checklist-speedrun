@@ -1,0 +1,23 @@
+{
+  "night": {
+    "start timer!": null,
+    "wind down (9:15)": {
+      "shower": null,
+      "moisturization": null,
+      "nose solution": null,
+      "brush, floss": null,
+      "log: phys res? echo? sleep data?": null,
+      "earplugs, turn off all lights, get red light": null
+    },
+    "reflect (9:25)": {
+      "how was today w.r.t. habits? w ab operation (includes emotions etc, esp with work)?": {
+        "|habits and operation are the two really important things in my life rn!|": null,
+        "|esp operation, controls emotions and state of mind, want a strong state of mind generally|": null
+      },
+      "anything else notable": null
+    },
+    "meditate 5m (9:30)": null,
+    "sleep": null,
+    "end timer, log time": null
+  }
+}
