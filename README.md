@@ -1,4 +1,4 @@
-# Checklist Speed
+# Checklist Speedrun
 
 A simple, keyboard-driven web application for running through personal checklists quickly. It tracks the time taken to complete a checklist and logs it to a Google Sheet.
 
