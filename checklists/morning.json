@@ -14,26 +14,27 @@
       "glasses": null,
       "keys": null,
       "watch": null,
-      "cleats?": null,
       "phone": null,
-      "water bottle": null
+      "water bottle": null,
+      "cleats? gloves? umbrella?": null
     },
     "——————————— (headphones, dnd) ——————————": null,
+    "read 2 & 5": null,
     "alarms": {
       "look at calendar, set alarms for important things": null,
       "if going to late events, turn off alarms saying to sleep": null
     },
-    "deal with [reminders & alexa notes]: do the thing || postpone (snap snap!)": {
+    "reminders & alexa notes (can postpone)": {
       "|actually kind of fun to do these|": null
     },
     "look at nomo": null,
-    "look at echo": null,
     "look at !habit": null,
-    "1m: forgetting to look at logs -> lose hella info; random sweets -> cooked and also unhealthy": null,
-    "2 & 5: most important idea/experience from each?":   null,
-    "appreciate: one person in my life thats very good and likes me": {
+    "30s: appreciate one person in my life that loves me": {
       "|happy :)|": null
-    }
+    },
+    "30s: appreciate an achievement i have that makes me proud": {
+      "|happy :)|": null
+    },
+    "check whoop data: bad? fix": null
   }
 }
-
