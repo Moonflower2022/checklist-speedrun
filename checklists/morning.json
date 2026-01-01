@@ -1,40 +1,40 @@
 {
   "morning": {
-    "shower": null,
+    "shower": true,
     "do": {
-      "moisturization": null,
-      "powder": null,
-      "eat gummies": null,
-      "deodorant": null,
-      "nose solution": null,
-      "brush": null
+      "moisturization": true,
+      "powder": true,
+      "eat gummies": true,
+      "deodorant": true,
+      "nose solution": true,
+      "brush": true
     },
     "get": {
-      "earbuds": null,
-      "glasses": null,
-      "keys": null,
-      "watch": null,
-      "phone": null,
-      "water bottle": null,
-      "cleats? gloves? umbrella?": null
+      "earbuds": true,
+      "glasses": true,
+      "keys": true,
+      "watch": true,
+      "phone": true,
+      "water bottle": true,
+      "cleats? gloves? umbrella?": true
     },
     "——————————— (headphones, dnd) ——————————": null,
-    "read 2 & 5": null,
+    "read 2 & 5": true,
     "alarms": {
-      "look at calendar, set alarms for important things": null,
-      "if going to late events, turn off alarms saying to sleep": null
+      "look at calendar, set alarms for important things": true,
+      "if going to late events, turn off alarms saying to sleep": true
     },
     "reminders & alexa notes (can postpone)": {
-      "|actually kind of fun to do these|": null
+      "actually kind of fun to do these": null
     },
-    "look at nomo": null,
-    "look at !habit": null,
+    "look at nomo": true,
+    "look at !habit": true,
     "30s: appreciate one person in my life that loves me": {
-      "|happy :)|": null
+      "happy :)": null
     },
     "30s: appreciate an achievement i have that makes me proud": {
-      "|happy :)|": null
+      "happy :)": null
     },
-    "check whoop data: bad? fix": null
+    "check whoop data: bad? fix": true
   }
 }

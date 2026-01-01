@@ -64,8 +64,94 @@
 
         .controls {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             align-items: center;
+        }
+
+        .edit-btn {
+            padding: 8px 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .edit-btn:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-modal.active {
+            display: flex;
+        }
+
+        .edit-content {
+            background-color: var(--bg-color);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-content h2 {
+            margin-bottom: 15px;
+        }
+
+        .edit-content textarea {
+            flex: 1;
+            min-height: 300px;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            resize: none;
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+
+        .edit-buttons button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .edit-buttons .save-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+        }
+
+        .edit-buttons .cancel-btn {
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
 
         .timer {
@@ -119,8 +205,29 @@
             margin: 4px 0;
             padding: 10px 12px;
             border-radius: 4px;
-            transition: background-color 0.15s ease, border-color 0.15s ease;
+            transition: all 0.2s ease;
             border-left: 3px solid transparent;
+            transform: translateX(0);
+        }
+
+        .todo-item.completing {
+            animation: completeItem 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes completeItem {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.05) translateX(10px); background-color: rgba(16, 185, 129, 0.2); }
+            100% { transform: scale(1); }
+        }
+
+        .todo-item.current {
+            animation: pulse 2s ease-in-out infinite;
+            border-left: 4px solid var(--current-item-border) !important;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); transform: scale(1); }
+            50% { box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1); transform: scale(1.01); }
         }
 
         .todo-item:hover {
@@ -140,6 +247,11 @@
         .todo-item.completed .todo-text {
             text-decoration: line-through;
             color: var(--completed-color);
+        }
+
+        .todo-item.display-only {
+            opacity: 0.6;
+            font-style: italic;
         }
 
         .todo-item.has-children {
@@ -200,37 +312,76 @@
 
         .completion-content {
             background-color: var(--bg-color);
-            padding: 40px;
-            border-radius: 16px;
+            padding: 60px;
+            border-radius: 28px;
             text-align: center;
-            max-width: 500px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 550px;
+            box-shadow: 0 40px 120px rgba(0, 0, 0, 0.5);
+            animation: completionPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes completionPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .completion-content h2 {
-            font-size: 32px;
+            font-size: 48px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #10b981, #0ea5e9, #6366f1);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        .completion-content .trophy {
+            font-size: 100px;
             margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));
+            animation: trophyBounce 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes trophyBounce {
+            from { transform: translateY(0) rotate(-5deg); }
+            to { transform: translateY(-20px) rotate(5deg); }
         }
 
         .completion-content p {
-            font-size: 18px;
-            margin-bottom: 30px;
+            font-size: 20px;
+            margin-bottom: 10px;
             color: var(--text-color);
         }
 
+        .completion-content .time-display {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 30px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
         .completion-content button {
-            padding: 12px 30px;
-            background-color: var(--accent-color);
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #0ea5e9, #10b981);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.15s ease;
+            transition: all 0.2s ease;
         }
 
         .completion-content button:hover {
-            background-color: var(--accent-hover);
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(14, 165, 233, 0.4);
         }
 
         .help-content h2 {
@@ -281,6 +432,90 @@
             background-color: #ef4444;
             color: white;
         }
+
+        .shortcut-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: var(--text-color);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 100;
+            max-width: 280px;
+        }
+
+        .shortcut-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .shortcut-hint kbd {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .speed-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .speed-indicator.visible {
+            opacity: 1;
+        }
+
+        .speed-indicator.level-1 {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .speed-indicator.level-2 {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: white;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
+            animation: speedPulse 0.5s ease infinite;
+        }
+
+        .speed-indicator.level-3 {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.7);
+            animation: speedPulse 0.3s ease infinite;
+        }
+
+        @keyframes speedPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        body.on-fire {
+            animation: fireGlow 0.5s ease infinite alternate;
+        }
+
+        @keyframes fireGlow {
+            from { box-shadow: inset 0 0 50px rgba(239, 68, 68, 0.1); }
+            to { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.2); }
+        }
     </style>
 </head>
 <body>
@@ -291,6 +526,7 @@
             <select class="mode-selector" id="modeSelector">
                 <option value="">Loading...</option>
             </select>
+            <button class="edit-btn" id="editBtn" title="Edit checklist">✏️</button>
             <button class="theme-toggle" id="themeToggle">🌓</button>
         </div>
     </div>
@@ -310,9 +546,26 @@
 
     <div class="completion-modal" id="completionModal">
         <div class="completion-content">
-            <h2>🎉 Checklist Complete!</h2>
+            <div class="trophy">🏆</div>
+            <h2>Checklist Complete!</h2>
+            <p>You finished in</p>
+            <div class="time-display" id="completionTime"></div>
             <p id="completionMessage"></p>
-            <button onclick="hideCompletion()">Close</button>
+            <button onclick="hideCompletion()">Awesome!</button>
+        </div>
+    </div>
+
+    <div class="shortcut-hint" id="shortcutHint"></div>
+    <div class="speed-indicator" id="speedIndicator"></div>
+
+    <div class="edit-modal" id="editModal">
+        <div class="edit-content">
+            <h2>Edit Checklist</h2>
+            <textarea id="editTextarea" spellcheck="false"></textarea>
+            <div class="edit-buttons">
+                <button class="cancel-btn" onclick="hideEdit()">Cancel</button>
+                <button class="save-btn" onclick="saveEdit()">Save</button>
+            </div>
         </div>
     </div>
 
@@ -331,12 +584,154 @@
         let undoStack = [];
         let redoStack = [];
 
+        // Speed tracking
+        let completionTimes = [];
+        let speedLevel = 0;
+        let speedTimeout = null;
+
+        function trackCompletion() {
+            const now = Date.now();
+            completionTimes.push(now);
+            // Keep only last 5 completions
+            if (completionTimes.length > 5) completionTimes.shift();
+
+            // Calculate average time between completions
+            if (completionTimes.length >= 2) {
+                let avgInterval = 0;
+                for (let i = 1; i < completionTimes.length; i++) {
+                    avgInterval += completionTimes[i] - completionTimes[i-1];
+                }
+                avgInterval /= (completionTimes.length - 1);
+
+                // Determine speed level based on avg interval
+                let newLevel = 0;
+                if (avgInterval < 1000) newLevel = 3;       // < 1s = ON FIRE
+                else if (avgInterval < 2000) newLevel = 2;  // < 2s = FAST
+                else if (avgInterval < 4000) newLevel = 1;  // < 4s = GOOD
+
+                updateSpeedIndicator(newLevel);
+            }
+
+            // Reset speed if no completion in 5 seconds
+            clearTimeout(speedTimeout);
+            speedTimeout = setTimeout(() => {
+                completionTimes = [];
+                updateSpeedIndicator(0);
+            }, 5000);
+        }
+
+        function updateSpeedIndicator(level) {
+            speedLevel = level;
+            const indicator = document.getElementById('speedIndicator');
+            indicator.className = 'speed-indicator';
+            document.body.classList.remove('on-fire');
+
+            if (level === 0) {
+                indicator.classList.remove('visible');
+            } else {
+                indicator.classList.add('visible', `level-${level}`);
+                if (level === 1) indicator.textContent = '⚡ Nice pace!';
+                else if (level === 2) indicator.textContent = '🔥 Fast!';
+                else if (level === 3) {
+                    indicator.textContent = '🚀 ON FIRE!';
+                    document.body.classList.add('on-fire');
+                }
+            }
+        }
+
+        // State persistence
+        function saveState() {
+            if (!currentChecklistName) return;
+            const state = {
+                completedItems: Array.from(completedItems),
+                currentItemId: currentItemId,
+                timerPausedTime: getTotalTime()
+            };
+            localStorage.setItem(`checklist-state-${currentChecklistName}`, JSON.stringify(state));
+        }
+
+        function loadState() {
+            if (!currentChecklistName) return false;
+            const saved = localStorage.getItem(`checklist-state-${currentChecklistName}`);
+            if (!saved) return false;
+            try {
+                const state = JSON.parse(saved);
+                completedItems = new Set(state.completedItems || []);
+                currentItemId = state.currentItemId;
+                timerPausedTime = state.timerPausedTime || 0;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function clearSavedState() {
+            if (!currentChecklistName) return;
+            localStorage.removeItem(`checklist-state-${currentChecklistName}`);
+        }
+
+        // Sound effects for keyboard actions
+        const sounds = {
+            complete: () => playTone(800, 0.1, 'sine'),
+            parentComplete: () => {
+                playTone(800, 0.05, 'sine');
+                setTimeout(() => playTone(1000, 0.1, 'sine'), 50);
+            },
+            undo: () => playTone(400, 0.1, 'sine'),
+            redo: () => playTone(500, 0.1, 'sine'),
+            navigate: () => playTone(600, 0.05, 'triangle'),
+            reset: () => playTone(300, 0.2, 'sawtooth'),
+            error: () => playTone(150, 0.2, 'square')
+        };
+
+        function playTone(freq, duration, type = 'sine') {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.value = 0.1;
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) { /* Audio not supported */ }
+        }
+
+        // Play completion animation on an item
+        function animateComplete(itemId) {
+            const el = document.querySelector(`[data-item-id="${itemId}"]`);
+            if (el) {
+                el.classList.add('completing');
+                setTimeout(() => el.classList.remove('completing'), 300);
+            }
+            sounds.complete();
+        }
+
+        // Show shortcut hints on load
+        function showShortcutHint() {
+            const hints = [
+                `<kbd>${formatKey(shortcuts.resetAndRestart)}</kbd> to reset & restart`,
+                `<kbd>${formatKey(shortcuts.completeAndNext)}</kbd> to complete item`,
+                `<kbd>${formatKey(shortcuts.showHelp)}</kbd> for all shortcuts`,
+                `<kbd>${formatKey(shortcuts.undo)}</kbd> to undo`
+            ];
+            const randomHint = hints[Math.floor(Math.random() * hints.length)];
+            const hint = document.getElementById('shortcutHint');
+            hint.innerHTML = `💡 Tip: ${randomHint}`;
+            hint.classList.add('visible');
+            setTimeout(() => hint.classList.remove('visible'), 4000);
+        }
+
         // Load keyboard shortcuts
         async function loadShortcuts() {
             try {
                 const response = await fetch('/keyboard_shortcuts.json');
                 shortcuts = await response.json();
                 updateHelpModal();
+                setTimeout(showShortcutHint, 1000);
             } catch (e) {
                 console.error('Failed to load shortcuts:', e);
                 // Default shortcuts
@@ -455,6 +850,10 @@
         }
 
         function resetAndRestart() {
+            // Clear saved state
+            clearSavedState();
+            sounds.reset();
+
             // Clear all completed items
             completedItems.clear();
             undoStack = [];
@@ -468,7 +867,7 @@
             renderChecklist();
 
             // Set cursor to first incomplete item
-            const firstIncomplete = findFirstIncomplete();
+            const firstIncomplete = findFirstActionableIncomplete();
             if (firstIncomplete) {
                 setCurrentItem(firstIncomplete);
             }
@@ -518,10 +917,18 @@
                     checklistData = rawData;
                 }
 
+                // Try to load saved state
+                const hasState = loadState();
+
                 renderChecklist();
 
-                // Auto-start timer when checklist is loaded
-                startTimer();
+                // If no saved state, start fresh timer
+                if (!hasState) {
+                    startTimer();
+                } else {
+                    // Resume from saved time
+                    document.getElementById('timer').textContent = formatTime(timerPausedTime);
+                }
             } catch (e) {
                 console.error('Failed to load checklist:', e);
                 showStatus('Failed to load checklist', 'error');
@@ -556,10 +963,12 @@
             const keys = Object.keys(parent);
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
+                // Skip internal markers
+                if (key === '_checkable') continue;
                 const itemPath = [...path, key];
                 const itemId = generateItemId(itemPath);
                 const value = parent[key];
-                
+
                 list.push(itemId);
                 
                 // Recursively add children (maintains order within each level)
@@ -571,17 +980,45 @@
             return list;
         }
 
+        // Check if an item value means it's interactable (can be completed)
+        function isActionable(itemId) {
+            const path = itemId.split('::');
+            let value = checklistData;
+            for (const key of path) {
+                if (!value || typeof value !== 'object') {
+                    value = undefined;
+                    break;
+                }
+                value = value[key];
+            }
+
+            if (value === false) return false; // Explicit display-only
+            if (value === null) return false;  // Header (new format)
+            if (isPipeWrapped(itemId)) return false; // Legacy pipe header
+
+            const hasChildren = value !== null && typeof value === 'object' && Object.keys(value).length > 0;
+            const isCheckableParent = hasChildren && value._checkable === true;
+
+            if (hasChildren) {
+                return isCheckableParent;
+            }
+
+            // Leaf node: true is interactable. Legacy: null was interactable but we migrated.
+            // We'll treat 'true' and any other non-null, non-object value as interactable for now.
+            return value === true || (value !== null && typeof value !== 'object');
+        }
+
         // Check if an item is completed (recursive)
         function isItemCompleted(item, path = []) {
             const itemId = generateItemId(path);
 
-            // Leaf node (null value) - check if it's in completedItems set
-            if (item === null || item === undefined) {
-                return completedItems.has(itemId);
-            }
+            // Headers and display-only items are always "done" (don't block parent completion)
+            if (item === false) return true;
+            if (item === null) return true;
+            if (isPipeWrapped(itemId)) return true;
 
-            // If it's not an object, treat as leaf
-            if (typeof item !== 'object') {
+            // Leaf node (true value) - check if it's in completedItems set
+            if (item === true || typeof item !== 'object') {
                 return completedItems.has(itemId);
             }
 
@@ -589,34 +1026,16 @@
             if (keys.length === 0) return true;
 
             // Parent node - check if it was manually completed first
-            // (This handles parents with only pipe-wrapped children that user manually completed)
             if (completedItems.has(itemId)) {
                 return true;
             }
 
-            // Otherwise, check if all non-pipe-wrapped children are completed (auto-completion)
-            // Pipe-wrapped items are ignored in completion logic
-            let hasNonPipeChild = false;
+            // Otherwise, check if all non-header children are completed
             for (const key of keys) {
-                const childPath = [...path, key];
-                const childId = generateItemId(childPath);
-
-                // Skip pipe-wrapped items when checking parent completion
-                if (isPipeWrapped(childId)) {
-                    continue;
-                }
-
-                hasNonPipeChild = true;
-
-                if (!isItemCompleted(item[key], childPath)) {
+                if (key === '_checkable') continue;
+                if (!isItemCompleted(item[key], [...path, key])) {
                     return false;
                 }
-            }
-
-            // If all children are pipe-wrapped, parent is not auto-completed
-            // (but can be manually completed, checked above)
-            if (!hasNonPipeChild) {
-                return false;
             }
 
             return true;
@@ -637,70 +1056,177 @@
             if (previousCurrentId && document.querySelector(`[data-item-id="${previousCurrentId}"]`)) {
                 setCurrentItem(previousCurrentId);
             } else {
-                const firstIncomplete = findFirstIncomplete();
+                const firstIncomplete = findFirstActionableIncomplete();
                 if (firstIncomplete) {
                     setCurrentItem(firstIncomplete);
                 }
             }
         }
 
-        function findFirstIncomplete(parent = checklistData, path = []) {
-            if (!parent || typeof parent !== 'object') return null;
-
-            // Object.keys() preserves insertion order - iterate in order
-            const keys = Object.keys(parent);
-
-            for (let i = 0; i < keys.length; i++) {
-                const key = keys[i];
-                const itemPath = [...path, key];
-                const itemId = generateItemId(itemPath);
-                const childItem = parent[key];
-
-                // Skip items wrapped in pipes
-                if (isPipeWrapped(itemId)) {
-                    continue;
-                }
-
-                // Check if this is a leaf node (null or not an object)
-                const isLeaf = childItem === null || childItem === undefined || typeof childItem !== 'object' || Object.keys(childItem).length === 0;
-
-                if (isLeaf) {
-                    if (!completedItems.has(itemId)) {
-                        return itemId;
-                    }
-                } else {
-                    // Parent node - recursively check children first
-                    const found = findFirstIncomplete(childItem, itemPath);
-                    if (found) return found;
+        function findFirstActionableIncomplete() {
+            const allItems = buildOrderedItemList();
+            for (const id of allItems) {
+                if (isActionable(id) && !isItemCompletedById(id)) {
+                    return id;
                 }
             }
             return null;
         }
 
+        let isEditMode = false;
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            document.getElementById('editBtn').textContent = isEditMode ? '✅' : '✏️';
+            renderChecklist();
+        }
+
+        // Generate unique ID for each item
+        function generateItemId(parentPath = []) {
+            return parentPath.join('::');
+        }
+
+        function getItemByPath(path) {
+            let current = checklistData;
+            for (const key of path) {
+                if (!current || typeof current !== 'object') return null;
+                current = current[key];
+            }
+            return current;
+        }
+
+        function updateItemInChecklist(path, newValue, oldKey = null) {
+            if (path.length === 0) {
+                checklistData = newValue;
+                return;
+            }
+
+            const parentPath = path.slice(0, -1);
+            const key = path[path.length - 1];
+            const parent = getItemByPath(parentPath);
+
+            if (parent && typeof parent === 'object') {
+                if (oldKey !== null) {
+                    // Renaming: delete old key, insert new key at same position
+                    const newParent = {};
+                    for (const k of Object.keys(parent)) {
+                        if (k === oldKey) {
+                            newParent[key] = newValue;
+                        } else {
+                            newParent[k] = parent[k];
+                        }
+                    }
+                    // Replace parent content
+                    for (const k of Object.keys(parent)) delete parent[k];
+                    Object.assign(parent, newParent);
+                } else {
+                    parent[key] = newValue;
+                }
+                saveChecklistOnServer();
+            }
+        }
+
+        function deleteItemFromChecklist(path) {
+            const parentPath = path.slice(0, -1);
+            const key = path[path.length - 1];
+            const parent = getItemByPath(parentPath);
+
+            if (parent && typeof parent === 'object') {
+                delete parent[key];
+                saveChecklistOnServer();
+            }
+        }
+
+        async function saveChecklistOnServer() {
+            try {
+                await fetch(`/api/checklist/${currentChecklistName}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ checklist: checklistData })
+                });
+                renderChecklist();
+            } catch (e) {
+                showStatus('Failed to save changes', 'error');
+            }
+        }
+
+        // Render items with edit controls
         function renderItems(data, path = []) {
             const container = document.createElement('div');
-
-            // Use Object.keys() to preserve insertion order (guaranteed in ES2015+)
             const keys = Object.keys(data);
 
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
+                if (key === '_checkable') continue;
                 const value = data[key];
                 const itemPath = [...path, key];
                 const itemId = generateItemId(itemPath);
-                // Check if this is a parent (has children) - value is an object with keys and not null
-                const hasChildren = value !== null && value !== undefined && typeof value === 'object' && Object.keys(value).length > 0;
+                
+                const hasChildren = value !== null && typeof value === 'object' && Object.keys(value).length > 0;
                 const isCompleted = isItemCompleted(value, itemPath);
+                const isActionableItem = isActionable(itemId);
+                const isHeader = value === null || isPipeWrapped(itemId);
+                const isDisplayOnly = value === false;
 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'todo-item';
                 itemDiv.dataset.itemId = itemId;
                 if (hasChildren) itemDiv.classList.add('has-children');
-                if (isCompleted) itemDiv.classList.add('completed');
+                if (isCompleted && isActionableItem) itemDiv.classList.add('completed');
+                if (isDisplayOnly || isHeader) itemDiv.classList.add('display-only');
+
+                if (isEditMode) {
+                    const editControls = document.createElement('span');
+                    editControls.className = 'edit-controls';
+                    editControls.style.marginRight = '10px';
+                    editControls.style.opacity = '0.7';
+
+                    const deleteBtn = document.createElement('span');
+                    deleteBtn.textContent = ' 🗑️';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete "${key}"?`)) deleteItemFromChecklist(itemPath);
+                    };
+
+                    const renameBtn = document.createElement('span');
+                    renameBtn.textContent = ' 📝';
+                    renameBtn.style.cursor = 'pointer';
+                    renameBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const newName = prompt('Rename item:', key);
+                        if (newName && newName !== key) {
+                            updateItemInChecklist([...path, newName], value, key);
+                        }
+                    };
+
+                    const addBtn = document.createElement('span');
+                    addBtn.textContent = ' ➕';
+                    addBtn.style.cursor = 'pointer';
+                    addBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const name = prompt('Add item under "' + key + '":');
+                        if (name) {
+                            let newValue = value;
+                            if (!hasChildren) {
+                                // Turn leaf into parent
+                                newValue = { [name]: true };
+                                updateItemInChecklist(itemPath, newValue);
+                            } else {
+                                value[name] = true;
+                                saveChecklistOnServer();
+                            }
+                        }
+                    };
+
+                    editControls.appendChild(renameBtn);
+                    editControls.appendChild(addBtn);
+                    editControls.appendChild(deleteBtn);
+                    itemDiv.appendChild(editControls);
+                }
 
                 const textDiv = document.createElement('div');
                 textDiv.className = 'todo-text';
-                // Parse markdown, sanitize, and strip outer <p> tags
                 let markdownHtml = DOMPurify.sanitize(marked.parse(key));
                 if (markdownHtml.trim().startsWith('<p>') && markdownHtml.trim().endsWith('</p>')) {
                     markdownHtml = markdownHtml.trim().slice(3, -4);
@@ -715,66 +1241,107 @@
                     itemDiv.appendChild(childrenDiv);
                 }
 
-                // Make items clickable if: (1) leaf OR (2) parent with only pipe-wrapped children, AND (3) not pipe-wrapped itself
-                const hasNonPipe = hasChildren ? hasNonPipeChildrenDirect(value, itemPath) : false;
-                const canClick = !isPipeWrapped(itemId) && (!hasChildren || !hasNonPipe);
-
-                if (canClick) {
-                    itemDiv.style.cursor = 'pointer';
-                    itemDiv.addEventListener('click', () => {
-                        toggleItem(itemId, itemPath);
-                    });
+                if (!isEditMode) {
+                    if (isActionableItem) {
+                        itemDiv.style.cursor = 'pointer';
+                        itemDiv.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            setCurrentItem(itemId);
+                            toggleItem(itemId, itemPath, true, false);
+                        });
+                    } else if (!isDisplayOnly && !isHeader) {
+                        itemDiv.style.cursor = 'default';
+                        itemDiv.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            setCurrentItem(itemId);
+                        });
+                    }
                 }
 
                 container.appendChild(itemDiv);
+            }
+
+            if (isEditMode) {
+                const addHereBtn = document.createElement('div');
+                addHereBtn.textContent = '➕ Add item here';
+                addHereBtn.style.fontSize = '12px';
+                addHereBtn.style.opacity = '0.5';
+                addHereBtn.style.cursor = 'pointer';
+                addHereBtn.style.marginTop = '4px';
+                addHereBtn.style.marginLeft = '12px';
+                addHereBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const name = prompt('Add item:');
+                    if (name) {
+                        data[name] = true;
+                        saveChecklistOnServer();
+                    }
+                };
+                container.appendChild(addHereBtn);
             }
 
             return container;
         }
 
         function toggleItem(itemId, path, addToHistory = true, moveNext = true) {
+            if (!isActionable(itemId)) return;
+
             const wasCompleted = completedItems.has(itemId);
+            const parentPath = path.slice(0, -1);
+            const parentId = parentPath.length > 0 ? generateItemId(parentPath) : null;
+            const parentWasCompleted = parentId ? isItemCompletedById(parentId) : false;
 
             if (wasCompleted) {
                 completedItems.delete(itemId);
                 if (addToHistory) {
                     undoStack.push({ type: 'uncomplete', itemId: itemId });
                     redoStack = [];
+                    sounds.undo();
                 }
             } else {
                 completedItems.add(itemId);
                 if (addToHistory) {
                     undoStack.push({ type: 'complete', itemId: itemId });
                     redoStack = [];
+                    animateComplete(itemId);
+                    trackCompletion();
+                    
+                    // Check for parent completion
+                    const parentIsCompleted = parentId ? isItemCompletedById(parentId) : false;
+                    if (!parentWasCompleted && parentIsCompleted) {
+                        sounds.parentComplete();
+                    }
                 }
                 if (moveNext) {
-                    moveToNextInContext();
+                    moveDown();
                 }
             }
             renderChecklist();
             checkCompletion();
+            saveState();
         }
-        
+
         function undoAction() {
             if (undoStack.length === 0) return;
             
             const action = undoStack.pop();
             
             if (action.type === 'complete') {
-                // Undo a complete action - uncomplete the item
                 completedItems.delete(action.itemId);
                 redoStack.push({ type: 'complete', itemId: action.itemId });
+                sounds.undo();
             } else {
-                // Undo an uncomplete action - complete the item again
                 completedItems.add(action.itemId);
                 redoStack.push({ type: 'uncomplete', itemId: action.itemId });
+                sounds.complete();
             }
             
             setCurrentItem(action.itemId);
             renderChecklist();
             checkCompletion();
+            saveState();
         }
-        
+
         function redoAction() {
             if (redoStack.length === 0) return;
 
@@ -783,39 +1350,31 @@
             if (action.type === 'complete') {
                 completedItems.add(action.itemId);
                 undoStack.push({ type: 'complete', itemId: action.itemId });
+                sounds.complete();
             } else {
                 completedItems.delete(action.itemId);
                 undoStack.push({ type: 'uncomplete', itemId: action.itemId });
+                sounds.redo();
             }
 
             setCurrentItem(action.itemId);
             renderChecklist();
             checkCompletion();
+            saveState();
         }
 
         function checkCompletion() {
-            console.log('✅ CHECK COMPLETION called');
-            console.log('  checklistData exists:', !!checklistData);
-
             if (checklistData) {
                 const isComplete = isItemCompleted(checklistData, []);
-                console.log('  Full checklist completed:', isComplete);
-
                 if (isComplete) {
-                    console.log('  🎉 CHECKLIST COMPLETE! Pausing timer and logging...');
                     pauseTimer();
                     const timeSeconds = getTotalTime();
-                    console.log('  Time to log:', timeSeconds, 'seconds');
                     logTime(timeSeconds);
                 }
             }
         }
 
         async function logTime(timeSeconds) {
-            console.log('📊 LOG TIME called');
-            console.log('  Checklist name:', currentChecklistName);
-            console.log('  Time (seconds):', timeSeconds);
-
             try {
                 const response = await fetch('/api/log-time', {
                     method: 'POST',
@@ -826,17 +1385,13 @@
                     })
                 });
 
-                console.log('  Response status:', response.status);
                 const data = await response.json();
-                console.log('  Response data:', data);
-
                 if (data.success) {
                     showCompletion(data.message);
                 } else {
                     showStatus(`Error: ${data.error}`, 'error');
                 }
             } catch (e) {
-                console.error('  Error logging time:', e);
                 showStatus(`Error logging time: ${e.message}`, 'error');
             }
         }
@@ -862,84 +1417,47 @@
             });
         }
 
-        // Move to next item in the ordered flat list (handles nested items correctly)
-        function moveToNextInContext() {
-            if (!currentItemId) {
-                const firstIncomplete = findFirstIncomplete();
-                if (firstIncomplete) setCurrentItem(firstIncomplete);
-                return;
-            }
-            
-            // Build ordered list of all items
-            const allItems = buildOrderedItemList();
-            
-            // Filter to only incomplete, non-pipe-wrapped, actionable items (leaf nodes that can be completed)
-            const validItems = allItems.filter(id => {
-                if (isPipeWrapped(id)) return false;
-                if (isItemCompletedById(id)) return false;
-                
-                // Check if it's a leaf node (can be completed) - not a parent with children
-                const path = id.split('::');
-                let current = checklistData;
-                for (const key of path) {
-                    if (!current || typeof current !== 'object') return false;
-                    current = current[key];
-                }
-                // Leaf node if current is null/undefined or empty object
-                const isLeaf = current === null || current === undefined || typeof current !== 'object' || Object.keys(current).length === 0;
-                return isLeaf;
-            });
-            
-            const currentIndex = validItems.indexOf(currentItemId);
-            if (currentIndex < validItems.length - 1) {
-                // Move to next valid item
-                setCurrentItem(validItems[currentIndex + 1]);
-            } else if (validItems.length > 0) {
-                // Wrap around to first item
-                setCurrentItem(validItems[0]);
-            }
-        }
-        
-        function moveToNext() {
-            // Use the same ordered list approach
-            moveToNextInContext();
-        }
-
         function moveDown() {
-            // Filter to navigable items: not pipe-wrapped AND (leaf OR parent with only pipe children)
-            const allItems = buildOrderedItemList().filter(id => {
-                if (isPipeWrapped(id)) return false;
-
-                // Check if it has non-pipe children
-                const hasNonPipe = hasNonPipeChildren(id);
-
-                // Include if: leaf (no children) OR parent with only pipe children
-                return !hasNonPipe;
-            });
-
+            const allItems = buildOrderedItemList();
             const currentIndex = allItems.indexOf(currentItemId);
 
-            if (currentIndex < allItems.length - 1) {
-                setCurrentItem(allItems[currentIndex + 1]);
+            // Find next actionable incomplete item
+            for (let i = currentIndex + 1; i < allItems.length; i++) {
+                const id = allItems[i];
+                if (isActionable(id) && !isItemCompletedById(id)) {
+                    setCurrentItem(id);
+                    return;
+                }
+            }
+            // Wrap around
+            for (let i = 0; i <= currentIndex; i++) {
+                const id = allItems[i];
+                if (isActionable(id) && !isItemCompletedById(id)) {
+                    setCurrentItem(id);
+                    return;
+                }
             }
         }
 
         function moveUp() {
-            // Filter to navigable items: not pipe-wrapped AND (leaf OR parent with only pipe children)
-            const allItems = buildOrderedItemList().filter(id => {
-                if (isPipeWrapped(id)) return false;
-
-                // Check if it has non-pipe children
-                const hasNonPipe = hasNonPipeChildren(id);
-
-                // Include if: leaf (no children) OR parent with only pipe children
-                return !hasNonPipe;
-            });
-
+            const allItems = buildOrderedItemList();
             const currentIndex = allItems.indexOf(currentItemId);
 
-            if (currentIndex > 0) {
-                setCurrentItem(allItems[currentIndex - 1]);
+            // Find previous actionable incomplete item
+            for (let i = currentIndex - 1; i >= 0; i--) {
+                const id = allItems[i];
+                if (isActionable(id) && !isItemCompletedById(id)) {
+                    setCurrentItem(id);
+                    return;
+                }
+            }
+            // Wrap around
+            for (let i = allItems.length - 1; i >= currentIndex; i--) {
+                const id = allItems[i];
+                if (isActionable(id) && !isItemCompletedById(id)) {
+                    setCurrentItem(id);
+                    return;
+                }
             }
         }
 
@@ -952,86 +1470,26 @@
             }
             return isItemCompleted(current, path);
         }
-        
-        function getItemByPath(path) {
-            let current = checklistData;
-            for (const key of path) {
-                if (!current || typeof current !== 'object') return null;
-                current = current[key];
-            }
-            return current;
-        }
-
-        // Check if an item has any non-pipe-wrapped children (by ID)
-        function hasNonPipeChildren(itemId) {
-            const path = itemId.split('::');
-            let current = checklistData;
-            for (const key of path) {
-                if (!current || typeof current !== 'object') return false;
-                current = current[key];
-            }
-
-            // If not an object or null, it's a leaf (no children)
-            if (!current || typeof current !== 'object' || Object.keys(current).length === 0) {
-                return false;
-            }
-
-            // Check if any children are NOT pipe-wrapped
-            for (const key of Object.keys(current)) {
-                const childPath = [...path, key];
-                const childId = generateItemId(childPath);
-                if (!isPipeWrapped(childId)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Check if an item has any non-pipe-wrapped children (direct value check)
-        function hasNonPipeChildrenDirect(value, parentPath) {
-            // If not an object or null, it's a leaf (no children)
-            if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
-                return false;
-            }
-
-            // Check if any children are NOT pipe-wrapped
-            for (const key of Object.keys(value)) {
-                const childPath = [...parentPath, key];
-                const childId = generateItemId(childPath);
-                if (!isPipeWrapped(childId)) {
-                    return true;
-                }
-            }
-            return false;
-        }
 
         function completeCurrentAndNext() {
             if (!currentItemId) {
-                const firstIncomplete = findFirstIncomplete();
+                const firstIncomplete = findFirstActionableIncomplete();
                 if (firstIncomplete) {
                     setCurrentItem(firstIncomplete);
                 }
                 return;
             }
 
-            const itemElement = document.querySelector(`[data-item-id="${currentItemId}"]`);
-            const hasChildren = itemElement?.classList.contains('has-children');
-            const isPipe = isPipeWrapped(currentItemId);
-            const hasNonPipe = hasNonPipeChildren(currentItemId);
-
-            // Can complete if: (1) leaf item OR (2) parent with ONLY pipe-wrapped children, AND (3) not pipe-wrapped itself
-            const canComplete = !isPipe && (!hasChildren || !hasNonPipe);
-
-            if (itemElement && canComplete) {
+            if (isActionable(currentItemId)) {
                 const path = currentItemId.split('::');
-                // Complete the item (without auto-moving to next)
                 if (!completedItems.has(currentItemId)) {
-                    toggleItem(currentItemId, path, true, false);
+                    toggleItem(currentItemId, path, true, true);
+                } else {
+                    moveDown();
                 }
+            } else {
+                moveDown();
             }
-
-            // Move down to next item (same as arrow key navigation)
-            moveDown();
         }
 
         function showHelp() {
@@ -1043,13 +1501,54 @@
         }
 
         function showCompletion(message) {
+            document.getElementById('completionTime').textContent = document.getElementById('timer').textContent;
             document.getElementById('completionMessage').textContent = message;
             document.getElementById('completionModal').classList.add('active');
             triggerConfetti();
+            // Play victory sound
+            playTone(523, 0.1);
+            setTimeout(() => playTone(659, 0.1), 100);
+            setTimeout(() => playTone(784, 0.2), 200);
         }
 
         function hideCompletion() {
             document.getElementById('completionModal').classList.remove('active');
+        }
+
+        function showEdit() {
+            const json = JSON.stringify(checklistData, null, 2);
+            document.getElementById('editTextarea').value = json;
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function hideEdit() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        async function saveEdit() {
+            const textarea = document.getElementById('editTextarea');
+            try {
+                const newData = JSON.parse(textarea.value);
+
+                // Save to server
+                const response = await fetch(`/api/checklist/${currentChecklistName}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ checklist: newData })
+                });
+
+                if (response.ok) {
+                    checklistData = newData;
+                    renderChecklist();
+                    hideEdit();
+                    showStatus('Checklist saved!', 'success');
+                } else {
+                    const err = await response.json();
+                    showStatus(`Error: ${err.error}`, 'error');
+                }
+            } catch (e) {
+                showStatus(`Invalid JSON: ${e.message}`, 'error');
+            }
         }
 
         function triggerConfetti() {
@@ -1143,9 +1642,11 @@
             } else if (matchesShortcut(e, shortcuts.moveDown)) {
                 e.preventDefault();
                 moveDown();
+                sounds.navigate();
             } else if (matchesShortcut(e, shortcuts.moveUp)) {
                 e.preventDefault();
                 moveUp();
+                sounds.navigate();
             } else if (matchesShortcut(e, shortcuts.startTimer)) {
                 e.preventDefault();
                 startTimer();
@@ -1199,6 +1700,15 @@
         });
 
         document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        document.getElementById('editBtn').addEventListener('click', toggleEditMode);
+
+        // Close edit modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('editModal').classList.contains('active')) {
+                e.preventDefault();
+                hideEdit();
+            }
+        });
 
         // Initialize
         loadShortcuts();

@@ -94,6 +94,26 @@ def get_checklist(checklist_name):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/checklist/<checklist_name>', methods=['PUT'])
+def save_checklist(checklist_name):
+    """Save/update a checklist"""
+    try:
+        data = request.json
+        checklist_data = data.get('checklist')
+        if not checklist_data:
+            return jsonify({'error': 'No checklist data provided'}), 400
+
+        file_path = os.path.join(CHECKLISTS_DIR, f'{checklist_name}.json')
+        if not os.path.realpath(file_path).startswith(os.path.realpath(CHECKLISTS_DIR)):
+            return jsonify({'error': 'Invalid checklist name'}), 400
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(checklist_data, f, ensure_ascii=False, indent=2)
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/log-time', methods=['POST'])
 def log_time():
     """Log completion time to Google Sheets"""

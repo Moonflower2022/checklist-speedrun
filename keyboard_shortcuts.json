@@ -5,11 +5,10 @@
   "startTimer": "s",
   "pauseTimer": "p",
   "resetTimer": "x",
-  "resetAndRestart": "Shift+x",
+  "resetAndRestart": "Shift+X",
   "switchMode": "m",
   "toggleTheme": "t",
   "showHelp": "?",
   "undo": "Meta+z",
   "redo": "Meta+Shift+z"
 }
-

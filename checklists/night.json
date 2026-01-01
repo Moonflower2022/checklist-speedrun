@@ -1,25 +1,25 @@
 {
   "night": {
-    "shower (no skipping!)": null,
+    "shower (no skipping!)": true,
     "wind down (9:15)": {
-      "charge earbuds, phone, computer": null,
-      "put ziplock in top left of fridge door": null,
-      "moisturization": null,
-      "nose solution": null,
-      "brush, floss": null,
-      "log: phys res? echo? sleep data?": null,
-      "do !habits": null,
-      "put on WHOOP": null,
-      "do i have a banana or other fruit in backpack? :)": null,
-      "earplugs, turn off all lights, get red light": null
+      "charge earbuds, phone, computer": true,
+      "put ziplock in top left of fridge door": true,
+      "moisturization": true,
+      "nose solution": true,
+      "brush, floss": true,
+      "log: phys res? echo? sleep data?": true,
+      "do !habits": true,
+      "put on WHOOP": true,
+      "do i have a banana or other fruit in backpack? :)": true,
+      "earplugs, turn off all lights, get red light": true
     },
     "reflect (9:25)": {
       "how was today w.r.t. habits? w ab operation (includes emotions etc, esp with work)?": {
-        "|habits and operation are the two really important things in my life rn!|": null,
-        "|esp operation, controls emotions and state of mind, want a strong state of mind generally|": null
+        "habits and operation are the two really important things in my life rn!": null,
+        "esp operation, controls emotions and state of mind, want a strong state of mind generally": null
       },
-      "anything else notable": null
+      "anything else notable": true
     },
-    "meditate 5m (9:30)": null
+    "meditate 5m (9:30)": true
   }
 }
