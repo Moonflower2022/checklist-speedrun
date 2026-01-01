@@ -1,22 +1,31 @@
-from flask import Flask, render_template, jsonify, request, send_from_directory
-from datetime import datetime, timedelta
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 import os
 import json
 import glob
+from datetime import datetime, timedelta
+from pathlib import Path
+
 import dotenv
+from flask import Flask, render_template, jsonify, request, send_from_directory
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+# Load environment variables early
+dotenv.load_dotenv()
 
 app = Flask(__name__)
+# Flask 2.3+ handles JSON sorting via this config
 app.json.sort_keys = False
 
 # Configuration
-dotenv.load_dotenv()
-CHECKLISTS_DIR = os.path.join(os.path.dirname(__file__), 'checklists')
-SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')  # Update if needed
-SHEET_NAME = os.getenv('SHEET_NAME')  # Update if needed
+BASE_DIR = Path(__file__).parent
+CHECKLISTS_DIR = BASE_DIR / 'checklists'
+CHECKLISTS_DIR.mkdir(exist_ok=True)
+
+SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')
+SHEET_NAME = os.getenv('SHEET_NAME', 'Sheet1')
 SERVICE_ACCOUNT_FILE = os.getenv('SERVICE_ACCOUNT_FILE')
+
 # Checklist name to column mapping
 CHECKLIST_COLUMN_NAME_MAP = {
     'morning': 'Day',
@@ -32,6 +41,10 @@ CHECKLIST_COLUMN_NUMBER_MAP = {
 
 def get_sheets_service():
     """Create and return Google Sheets API service"""
+    if not SERVICE_ACCOUNT_FILE or not Path(SERVICE_ACCOUNT_FILE).exists():
+        app.logger.error(f"Service account file not found: {SERVICE_ACCOUNT_FILE}")
+        return None
+
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     
     try:
@@ -40,7 +53,7 @@ def get_sheets_service():
         service = build('sheets', 'v4', credentials=credentials)
         return service
     except Exception as e:
-        print(f"❌ Error creating sheets service: {e}")
+        app.logger.error(f"Error creating sheets service: {e}")
         return None
 
 @app.route('/')
@@ -51,47 +64,54 @@ def index():
 @app.route('/keyboard_shortcuts.json')
 def get_shortcuts():
     """Serve keyboard shortcuts configuration"""
-    shortcuts_path = os.path.join(os.path.dirname(__file__), 'keyboard_shortcuts.json')
-    return send_from_directory(os.path.dirname(shortcuts_path), 'keyboard_shortcuts.json')
+    return send_from_directory(BASE_DIR, 'keyboard_shortcuts.json')
 
 @app.route('/api/checklists')
 def list_checklists():
     """List all available checklist JSON files"""
     try:
-        json_files = glob.glob(os.path.join(CHECKLISTS_DIR, '*.json'))
-        checklists = []
-        for file_path in json_files:
-            filename = os.path.basename(file_path)
-            checklist_name = os.path.splitext(filename)[0]
-            checklists.append({
-                'name': checklist_name,
-                'filename': filename
-            })
+        json_files = list(CHECKLISTS_DIR.glob('*.json'))
+        checklists = [
+            {
+                'name': f.stem,
+                'filename': f.name
+            }
+            for f in sorted(json_files)
+        ]
         return jsonify({'checklists': checklists})
     except Exception as e:
+        app.logger.error(f"Error listing checklists: {e}")
         return jsonify({'error': str(e)}), 500
+
+def get_safe_path(name):
+    """Ensure the checklist name doesn't lead to path traversal"""
+    if not name:
+        return None
+    # Add .json extension and resolve the full path
+    try:
+        safe_path = (CHECKLISTS_DIR / f"{name}.json").resolve()
+        # Check if the resolved path is still inside CHECKLISTS_DIR
+        if CHECKLISTS_DIR.resolve() in safe_path.parents:
+            return safe_path
+    except (ValueError, RuntimeError):
+        return None
+    return None
 
 @app.route('/api/checklist/<checklist_name>')
 def get_checklist(checklist_name):
     """Get a specific checklist by name"""
     try:
-        file_path = os.path.join(CHECKLISTS_DIR, f'{checklist_name}.json')
-        # Prevent path traversal attacks
-        if not os.path.realpath(file_path).startswith(os.path.realpath(CHECKLISTS_DIR)):
-            return jsonify({'error': 'Invalid checklist name'}), 400
-        if not os.path.exists(file_path):
+        file_path = get_safe_path(checklist_name)
+        
+        if not file_path or not file_path.exists():
             return jsonify({'error': 'Checklist not found'}), 404
 
         with open(file_path, 'r', encoding='utf-8') as f:
             checklist_data = json.load(f)
 
-        response = app.response_class(
-            response=json.dumps({'checklist': checklist_data}, ensure_ascii=False, sort_keys=False),
-            status=200,
-            mimetype='application/json'
-        )
-        return response
+        return jsonify({'checklist': checklist_data})
     except Exception as e:
+        app.logger.error(f"Error getting checklist {checklist_name}: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/checklist/<checklist_name>', methods=['PUT'])
@@ -99,19 +119,19 @@ def save_checklist(checklist_name):
     """Save/update a checklist"""
     try:
         data = request.json
-        checklist_data = data.get('checklist')
-        if not checklist_data:
+        if not data or 'checklist' not in data:
             return jsonify({'error': 'No checklist data provided'}), 400
 
-        file_path = os.path.join(CHECKLISTS_DIR, f'{checklist_name}.json')
-        if not os.path.realpath(file_path).startswith(os.path.realpath(CHECKLISTS_DIR)):
+        file_path = get_safe_path(checklist_name)
+        if not file_path:
             return jsonify({'error': 'Invalid checklist name'}), 400
 
         with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(checklist_data, f, ensure_ascii=False, indent=2)
+            json.dump(data['checklist'], f, ensure_ascii=False, indent=2)
 
         return jsonify({'success': True})
     except Exception as e:
+        app.logger.error(f"Error saving checklist {checklist_name}: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/log-time', methods=['POST'])
@@ -125,6 +145,9 @@ def log_time():
         if not checklist_name or time_seconds is None:
             return jsonify({'error': 'Missing checklist_name or time_seconds'}), 400
 
+        if not SPREADSHEET_ID:
+            return jsonify({'error': 'SPREADSHEET_ID not configured'}), 500
+
         # Determine which column to update based on checklist name
         column_name = CHECKLIST_COLUMN_NAME_MAP.get(checklist_name.lower(), 'Day')
 
@@ -134,16 +157,9 @@ def log_time():
 
         # Get today's date in format M/D/YYYY
         now = datetime.now()
-        if now.hour < 6:
-            target_date = now - timedelta(days=1)
-        else:
-            target_date = now
-
-        # Format without leading zeros (M/D/YYYY)
-        month = str(target_date.month)
-        day = str(target_date.day)
-        year = str(target_date.year)
-        today = f"{month}/{day}/{year}"
+        # If it's early morning (before 6 AM), log as the previous day
+        target_date = now - timedelta(days=1) if now.hour < 6 else now
+        today = target_date.strftime('%-m/%-d/%Y')
 
         # Find today's date in column A
         result = service.spreadsheets().values().get(
@@ -152,11 +168,7 @@ def log_time():
         ).execute()
 
         values = result.get('values', [])
-        row_number = None
-        for i, row in enumerate(values):
-            if row and row[0] == today:
-                row_number = i + 1
-                break
+        row_number = next((i + 1 for i, row in enumerate(values) if row and row[0] == today), None)
 
         if row_number is None:
             return jsonify({'error': f'Could not find date {today} in spreadsheet'}), 404
@@ -164,17 +176,15 @@ def log_time():
         column_index = CHECKLIST_COLUMN_NUMBER_MAP.get(column_name, 2) - 1  # Zero-based index
         column_letter = chr(ord('A') + column_index)
 
-        # Format time as hours, minutes, and seconds
-        hours = int(time_seconds // 3600)
-        minutes = int((time_seconds % 3600) // 60)
-        seconds = int(time_seconds % 60)
-
-        if hours > 0:
-            time_str = f"{hours}h {minutes}m {seconds}s"
-        elif minutes > 0:
-            time_str = f"{minutes}m {seconds}s"
-        else:
-            time_str = f"{seconds}s"
+        # Format time string
+        td = timedelta(seconds=int(time_seconds))
+        parts = []
+        hours, remainder = divmod(td.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        if hours > 0: parts.append(f"{hours}h")
+        if minutes > 0: parts.append(f"{minutes}m")
+        if seconds > 0 or not parts: parts.append(f"{seconds}s")
+        time_str = " ".join(parts)
 
         # Update the cell
         range_to_update = f'{SHEET_NAME}!{column_letter}{row_number}'
@@ -194,10 +204,14 @@ def log_time():
         })
 
     except HttpError as error:
-        return jsonify({'error': f'Google Sheets API error: {error}'}), 500
+        app.logger.error(f"Google Sheets API error: {error}")
+        return jsonify({'error': f'Google Sheets API error: {error.reason}'}), 500
     except Exception as e:
+        app.logger.error(f"Unexpected error in log_time: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    # Use environment variables for host/port if available, but default to 5001 as per original
+    port = int(os.getenv('PORT', 5001))
+    app.run(debug=True, port=port)
 

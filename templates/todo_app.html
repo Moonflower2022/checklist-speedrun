@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checklist Speedrun</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/lib/marked.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -671,6 +671,7 @@
         }
 
         // Sound effects for keyboard actions
+        let audioContext = null;
         const sounds = {
             complete: () => playTone(800, 0.1, 'sine'),
             parentComplete: () => {
@@ -686,18 +687,23 @@
 
         function playTone(freq, duration, type = 'sine') {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
                 osc.type = type;
-                osc.frequency.value = freq;
-                gain.gain.value = 0.1;
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+                gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
                 osc.connect(gain);
-                gain.connect(ctx.destination);
+                gain.connect(audioContext.destination);
                 osc.start();
-                osc.stop(ctx.currentTime + duration);
-            } catch (e) { /* Audio not supported */ }
+                osc.stop(audioContext.currentTime + duration);
+            } catch (e) { /* Audio not supported or blocked */ }
         }
 
         // Play completion animation on an item
