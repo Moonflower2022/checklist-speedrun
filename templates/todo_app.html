@@ -244,7 +244,7 @@
             opacity: 0.7;
         }
 
-        .todo-item.completed .todo-text {
+        .todo-item.completed > .todo-text {
             text-decoration: line-through;
             color: var(--completed-color);
         }
@@ -979,8 +979,19 @@
             return list;
         }
 
+        function containsTasks(item) {
+            if (item === true || (item !== null && typeof item !== 'object')) return true;
+            if (item === false || item === null) return false;
+            if (item._checkable === true) return true;
+            
+            const keys = Object.keys(item).filter(k => k !== '_checkable');
+            return keys.some(key => containsTasks(item[key]));
+        }
+
         // Check if an item value means it's interactable (can be completed)
         function isActionable(itemId) {
+            if (!itemId) return false;
+            
             const path = itemId.split('::');
             let value = checklistData;
             for (const key of path) {
@@ -991,61 +1002,40 @@
                 value = value[key];
             }
 
-            if (value === false) return false; // Explicit display-only
-            if (value === null) return false;  // Header (new format)
-            if (isPipeWrapped(itemId)) return false; // Legacy pipe header
+            if (value === undefined || value === false || value === null) return false;
+            if (isPipeWrapped(itemId)) return false;
 
-            const hasChildren = value !== null && typeof value === 'object' && Object.keys(value).length > 0;
+            if (value._checkable === true) return true;
+
+            const keys = (value !== null && typeof value === 'object') ? Object.keys(value).filter(k => k !== '_checkable') : [];
+            const hasChildren = keys.length > 0;
 
             if (hasChildren) {
-                // Check if explicitly marked as checkable
-                if (value._checkable === true) return true;
-
-                // Check if ALL children are non-actionable (null or false)
-                // If so, this parent should be actionable itself
-                const childKeys = Object.keys(value).filter(k => k !== '_checkable');
-                const allChildrenNonActionable = childKeys.every(key => {
-                    const childValue = value[key];
-                    return childValue === null || childValue === false;
-                });
-                return allChildrenNonActionable;
+                // Parent is actionable ONLY if it contains NO sub-tasks (only notes/headers)
+                return !keys.some(key => containsTasks(value[key]));
             }
 
-            // Leaf node: true is interactable
-            return value === true || (value !== null && typeof value !== 'object');
+            // Leaf node: headers handled above
+            return true;
         }
 
-        // Check if an item is completed (recursive)
         function isItemCompleted(item, path = []) {
             const itemId = generateItemId(path);
 
-            // Headers and display-only items are always "done" (don't block parent completion)
-            if (item === false) return true;
-            if (item === null) return true;
-            if (isPipeWrapped(itemId)) return true;
+            if (item === false || item === null || isPipeWrapped(itemId)) return true;
 
-            // Leaf node (true value) - check if it's in completedItems set
-            if (item === true || typeof item !== 'object') {
-                return completedItems.has(itemId);
-            }
-
-            const keys = Object.keys(item);
-            if (keys.length === 0) return true;
-
-            // Parent node - check if it was manually completed first
-            if (completedItems.has(itemId)) {
+            const keys = (item !== null && typeof item === 'object') ? Object.keys(item).filter(k => k !== '_checkable') : [];
+            
+            if (itemId && completedItems.has(itemId)) {
                 return true;
             }
 
-            // If this item is actionable (can be checked), it's only done if in completedItems
-            // This handles items with all null children - they're actionable but need explicit completion
             if (isActionable(itemId)) {
-                return false;
+                return completedItems.has(itemId);
             }
 
-            // Otherwise, check if all non-header children are completed
+            // Otherwise, it's a non-actionable parent: all actionable children must be done
             for (const key of keys) {
-                if (key === '_checkable') continue;
                 if (!isItemCompleted(item[key], [...path, key])) {
                     return false;
                 }
@@ -1092,11 +1082,6 @@
             isEditMode = !isEditMode;
             document.getElementById('editBtn').textContent = isEditMode ? '✅' : '✏️';
             renderChecklist();
-        }
-
-        // Generate unique ID for each item
-        function generateItemId(parentPath = []) {
-            return parentPath.join('::');
         }
 
         function getItemByPath(path) {
@@ -1378,11 +1363,9 @@
 
         function checkCompletion() {
             if (checklistData) {
-                const isComplete = isItemCompleted(checklistData, []);
-                if (isComplete) {
+                if (isItemCompleted(checklistData, [])) {
                     pauseTimer();
-                    const timeSeconds = getTotalTime();
-                    logTime(timeSeconds);
+                    logTime(getTotalTime());
                 }
             }
         }
@@ -1730,4 +1713,3 @@
     </script>
 </body>
 </html>
-

@@ -16,8 +16,56 @@ const testData = {
       "anything else notable": true
     },
     "meditate 5m": true
+  },
+  morning_rushed: {
+    "get ready": {
+      "get": {
+        "earbuds": true,
+        "glasses": true
+      },
+      "do": {
+        "deodorant": true
+      }
+    }
   }
 };
+
+function containsTasks(item) {
+  if (item === true || (item !== null && typeof item !== 'object')) return true;
+  if (item === false || item === null) return false;
+  if (item._checkable === true) return true;
+  
+  const keys = Object.keys(item).filter(k => k !== '_checkable');
+  return keys.some(key => containsTasks(item[key]));
+}
+
+function isActionable(itemId, data) {
+  if (!itemId) return false;
+  const path = itemId.split('::');
+  let value = data;
+  for (const key of path) {
+    if (!value || typeof value !== 'object') {
+      value = undefined;
+      break;
+    }
+    value = value[key];
+  }
+
+  if (value === undefined || value === false || value === null) return false;
+  if (isPipeWrapped(itemId)) return false;
+
+  if (value._checkable === true) return true;
+
+  const keys = (value !== null && typeof value === 'object') ? Object.keys(value).filter(k => k !== '_checkable') : [];
+  const hasChildren = keys.length > 0;
+
+  if (hasChildren) {
+    // Parent is actionable ONLY if it contains NO sub-tasks (only notes/headers)
+    return !keys.some(key => containsTasks(value[key]));
+  }
+
+  return true;
+}
 
 // Simulate the core functions from todo_app.html
 function generateItemId(path) {
@@ -45,36 +93,6 @@ function buildOrderedItemList(parent, path = [], list = []) {
     }
   }
   return list;
-}
-
-function isActionable(itemId, data) {
-  const path = itemId.split('::');
-  let value = data;
-  for (const key of path) {
-    if (!value || typeof value !== 'object') {
-      value = undefined;
-      break;
-    }
-    value = value[key];
-  }
-
-  if (value === false) return false;
-  if (value === null) return false;
-  if (isPipeWrapped(itemId)) return false;
-
-  const hasChildren = value !== null && typeof value === 'object' && Object.keys(value).length > 0;
-
-  if (hasChildren) {
-    if (value._checkable === true) return true;
-    const childKeys = Object.keys(value).filter(k => k !== '_checkable');
-    const allChildrenNonActionable = childKeys.every(key => {
-      const childValue = value[key];
-      return childValue === null || childValue === false;
-    });
-    return allChildrenNonActionable;
-  }
-
-  return value === true || (value !== null && typeof value !== 'object');
 }
 
 // Test framework
@@ -120,9 +138,19 @@ test('parent with mixed children is NOT actionable', () => {
   assert(!isActionable(id, testData.night), 'parent with actionable children not actionable');
 });
 
-test('parent with ALL null children IS actionable', () => {
+test('parent with all null children IS actionable', () => {
   const id = 'reflect (9:25)::how was today?';
   assert(isActionable(id, testData.night), 'parent with all null children should be actionable');
+});
+
+test('Get Ready parent is NOT actionable', () => {
+  const id = 'get ready';
+  assert(!isActionable(id, testData.morning_rushed), 'Get Ready should NOT be actionable');
+});
+
+test('Get ready -> get parent is NOT actionable', () => {
+  const id = 'get ready::get';
+  assert(!isActionable(id, testData.morning_rushed), 'get ready::get should NOT be actionable');
 });
 
 test('nested leaf items are actionable', () => {
@@ -204,7 +232,7 @@ test('navigation skips parent with actionable children', () => {
   assert(!hasWindDown, 'wind down parent should not be actionable');
 });
 
-test('empty children case - all null children makes parent actionable', () => {
+test('parent with all null children is actionable', () => {
   const data = { "question": { "note1": null, "note2": null } };
   assert(isActionable('question', data), 'parent with all null children should be actionable');
 });
@@ -215,23 +243,15 @@ console.log('\n=== Completion Logic Tests ===\n');
 function isItemCompleted(item, path, completedItems, data) {
   const itemId = path.join('::');
 
-  if (item === false) return true;
-  if (item === null) return true;
+  if (item === false || item === null || isPipeWrapped(itemId)) return true;
 
-  if (item === true || typeof item !== 'object') {
-    return completedItems.has(itemId);
-  }
+  const keys = (item !== null && typeof item === 'object') ? Object.keys(item).filter(k => k !== '_checkable') : [];
+  
+  if (itemId && completedItems.has(itemId)) return true;
 
-  const keys = Object.keys(item);
-  if (keys.length === 0) return true;
-
-  if (completedItems.has(itemId)) return true;
-
-  // If actionable, must be explicitly completed
-  if (isActionable(itemId, data)) return false;
+  if (isActionable(itemId, data)) return completedItems.has(itemId);
 
   for (const key of keys) {
-    if (key === '_checkable') continue;
     if (!isItemCompleted(item[key], [...path, key], completedItems, data)) {
       return false;
     }
@@ -244,6 +264,13 @@ test('item with all null children is NOT completed by default', () => {
   const completed = new Set();
   const result = isItemCompleted(data.question, ['question'], completed, data);
   assert(!result, 'should not be completed without explicit check');
+});
+
+test('item with all null children IS completed when in completedItems', () => {
+  const data = { "question": { "note1": null, "note2": null } };
+  const completed = new Set(['question']);
+  const result = isItemCompleted(data.question, ['question'], completed, data);
+  assert(result, 'should be completed when explicitly checked');
 });
 
 test('item with all null children IS completed when in completedItems', () => {
