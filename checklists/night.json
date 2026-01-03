@@ -1,25 +1,24 @@
 {
-  "night": {
-    "shower (no skipping!)": true,
-    "wind down (9:15)": {
-      "charge earbuds, phone, computer": true,
-      "put ziplock in top left of fridge door": true,
-      "moisturization": true,
-      "nose solution": true,
-      "brush, floss": true,
-      "log: phys res? echo? sleep data?": true,
-      "do !habits": true,
-      "put on WHOOP": true,
-      "do i have a banana or other fruit in backpack? :)": true,
-      "earplugs, turn off all lights, get red light": true
+  "shower (no skipping!)": true,
+  "what is the SI prefix mnemonic? (look at it afterwards)": true,
+  "wind down": {
+    "put ziplock in top left of fridge door": true,
+    "charge earbuds, phone, computer": true,
+    "moisturization": true,
+    "nose solution": true,
+    "brush": true,
+    "floss": true,
+    "log: phys res? echo? sleep data?": true,
+    "do !habits": true,
+    "put on WHOOP": true,
+    "earplugs, turn off all lights, get red light": true
+  },
+  "reflect": {
+    "how was today w.r.t. habits? w ab operation (includes emotions etc, esp with work)?": {
+      "habits and operation are the two really important things in my life rn!": null,
+      "esp operation, controls emotions and state of mind, want a strong state of mind generally": null,
+      "things i can do better": null
     },
-    "reflect (9:25)": {
-      "how was today w.r.t. habits? w ab operation (includes emotions etc, esp with work)?": {
-        "habits and operation are the two really important things in my life rn!": null,
-        "esp operation, controls emotions and state of mind, want a strong state of mind generally": null
-      },
-      "anything else notable": true
-    },
-    "meditate 5m (9:30)": true
+    "anything else notable": true
   }
 }
