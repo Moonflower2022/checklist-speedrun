@@ -893,7 +893,12 @@
                 selector.innerHTML = data.checklists.map(c => 
                     `<option value="${c.name}">${c.name}</option>`
                 ).join('');
-                if (data.checklists.length > 0) {
+                
+                const savedChecklist = localStorage.getItem('selected-checklist');
+                if (savedChecklist && data.checklists.some(c => c.name === savedChecklist)) {
+                    selector.value = savedChecklist;
+                    loadChecklist(savedChecklist, true);
+                } else if (data.checklists.length > 0) {
                     loadChecklist(data.checklists[0].name);
                 }
             } catch (e) {
@@ -902,17 +907,21 @@
         }
 
         // Load a specific checklist
-        async function loadChecklist(name) {
+        async function loadChecklist(name, preserveState = false) {
             try {
                 currentChecklistName = name;
+                localStorage.setItem('selected-checklist', name);
+                
                 completedItems.clear();
                 resetTimer();
                 currentItemId = null;
                 undoStack = [];
                 redoStack = [];
 
-                // Clear any saved state for this checklist (fresh start on switch)
-                clearSavedState();
+                if (!preserveState) {
+                    // Clear any saved state for this checklist (fresh start on switch)
+                    clearSavedState();
+                }
 
                 const response = await fetch(`/api/checklist/${name}`);
                 const data = await response.json();
@@ -924,6 +933,10 @@
                     checklistData = rawData[Object.keys(rawData)[0]];
                 } else {
                     checklistData = rawData;
+                }
+
+                if (preserveState) {
+                    loadState();
                 }
 
                 renderChecklist();
