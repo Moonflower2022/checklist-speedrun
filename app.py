@@ -57,7 +57,7 @@ def get_sheets_service():
 @app.route('/')
 def index():
     """Serve the main todo app page"""
-    return render_template('todo_app.html')
+    return render_template('index.html')
 
 @app.route('/keyboard_shortcuts.json')
 def get_shortcuts():
