@@ -1,9 +1,9 @@
 {
-  "shower": true,
-  "what is the SI prefix mnemonic? (look at it afterwards)": true,
+  "shower": false,
+  "what is the SI prefix mnemonic? (look at it afterwards)": false,
   "do": {
-    "moisturization": true,
-    "powder": true,
+    "moisturization": false,
+    "powder": false,
     "eat gummies": true,
     "deodorant": true,
     "nose solution": true,
@@ -20,10 +20,10 @@
   },
   "——————————— (headphones, dnd) ——————————": null,
   "30s: appreciate one person in my life that loves me": {
-    "happy :)": null
+    "happy :)": false
   },
   "30s: appreciate an achievement i have that makes me proud": {
-    "happy :)": null
+    "happy :)": false
   },
   "read 2 & 5": true,
   "reminders & alexa notes (can postpone)": {
@@ -33,7 +33,7 @@
     "look at calendar, set alarms for important things": true,
     "if going to late events, turn off alarms saying to sleep": true
   },
-  "look at nomo": true,
-  "look at !habit": true,
-  "check whoop data: bad? fix": true
+  "look at nomo": false,
+  "look at !habit": false,
+  "check whoop data: bad? fix": false
 }

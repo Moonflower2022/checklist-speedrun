@@ -8,6 +8,7 @@
   "resetAndRestart": "Shift+X",
   "switchMode": "m",
   "toggleTheme": "t",
+  "toggleRushed": "r",
   "showHelp": "?",
   "undo": "Meta+z",
   "redo": "Meta+Shift+z"

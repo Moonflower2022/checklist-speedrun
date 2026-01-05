@@ -60,6 +60,25 @@
         .header h1 {
             font-size: 24px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .rush-indicator {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: #ef4444;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            display: none;
+        }
+
+        .rush-indicator.active {
+            display: inline-block;
         }
 
         .controls {
@@ -520,7 +539,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>Checklist Speedrun</h1>
+        <h1>Checklist Speedrun <span id="rushIndicator" class="rush-indicator">Rushed</span></h1>
         <div class="controls">
             <div class="timer" id="timer">00:00:00</div>
             <select class="mode-selector" id="modeSelector">
@@ -575,6 +594,7 @@
         let completedItems = new Set();
         let currentItemId = null;
         let shortcuts = {};
+        let isRushed = false;
         let timerStartTime = null;
         let timerPausedTime = 0;
         let timerInterval = null;
@@ -639,13 +659,21 @@
             }
         }
 
+        function toggleRushed() {
+            isRushed = !isRushed;
+            document.getElementById('rushIndicator').classList.toggle('active', isRushed);
+            renderChecklist();
+            saveState();
+        }
+
         // State persistence
         function saveState() {
             if (!currentChecklistName) return;
             const state = {
                 completedItems: Array.from(completedItems),
                 currentItemId: currentItemId,
-                timerPausedTime: getTotalTime()
+                timerPausedTime: getTotalTime(),
+                isRushed: isRushed
             };
             localStorage.setItem(`checklist-state-${currentChecklistName}`, JSON.stringify(state));
         }
@@ -656,9 +684,9 @@
             if (!saved) return false;
             try {
                 const state = JSON.parse(saved);
-                completedItems = new Set(state.completedItems || []);
-                currentItemId = state.currentItemId;
-                timerPausedTime = state.timerPausedTime || 0;
+                // We no longer restore completedItems, currentItemId, or timerPausedTime
+                // as we want a fresh start on reload, but we keep isRushed.
+                isRushed = !!state.isRushed;
                 return true;
             } catch (e) {
                 return false;
@@ -768,6 +796,7 @@
                 resetAndRestart: 'Reset & Restart',
                 switchMode: 'Switch Mode',
                 toggleTheme: 'Toggle Theme',
+                toggleRushed: 'Toggle Rushed',
                 showHelp: 'Show Help',
                 undo: 'Undo',
                 redo: 'Redo'
@@ -992,13 +1021,24 @@
             return list;
         }
 
-        function containsTasks(item) {
+        function containsTasks(item, isRushedMode = false) {
+            if (isRushedMode && item === false) return false;
+            if (item === false) return true; // false is a task in non-rush mode
             if (item === true || (item !== null && typeof item !== 'object')) return true;
-            if (item === false || item === null) return false;
+            if (item === null) return false;
             if (item._checkable === true) return true;
             
             const keys = Object.keys(item).filter(k => k !== '_checkable');
-            return keys.some(key => containsTasks(item[key]));
+            return keys.some(key => containsTasks(item[key], isRushedMode));
+        }
+
+        // Check if an item has any content that should be visible in rushed mode
+        function shouldShowInRushedMode(item) {
+            if (item === false) return false;
+            if (item === true || item === null || (item !== null && typeof item !== 'object')) return true;
+            
+            const keys = Object.keys(item).filter(k => k !== '_checkable');
+            return keys.some(key => shouldShowInRushedMode(item[key]));
         }
 
         // Check if an item value means it's interactable (can be completed)
@@ -1015,8 +1055,11 @@
                 value = value[key];
             }
 
-            if (value === undefined || value === false || value === null) return false;
+            if (value === undefined || value === null) return false;
             if (isPipeWrapped(itemId)) return false;
+
+            // 'false' items are actionable notes that are hidden in rushed mode
+            if (value === false) return !isRushed;
 
             if (value._checkable === true) return true;
 
@@ -1025,17 +1068,46 @@
 
             if (hasChildren) {
                 // Parent is actionable ONLY if it contains NO sub-tasks (only notes/headers)
-                return !keys.some(key => containsTasks(value[key]));
+                return !keys.some(key => containsTasks(value[key], isRushed));
             }
 
             // Leaf node: headers handled above
             return true;
         }
 
+        // Check if an item can be navigated to (arrow keys/click)
+        function isNavigable(itemId) {
+            if (!itemId) return false;
+            if (isPipeWrapped(itemId)) return false;
+
+            const path = itemId.split('::');
+            let value = checklistData;
+            for (const key of path) {
+                if (!value || typeof value !== 'object') {
+                    value = undefined;
+                    break;
+                }
+                value = value[key];
+            }
+
+            // headers/spacers are not navigable
+            if (value === null || value === undefined) return false;
+            
+            // notes (false) are hidden in rushed mode
+            if (value === false) return !isRushed;
+            
+            // actionable items are navigable
+            return isActionable(itemId);
+        }
+
         function isItemCompleted(item, path = []) {
             const itemId = generateItemId(path);
 
-            if (item === false || item === null || isPipeWrapped(itemId)) return true;
+            // In rushed mode, if an item should be filtered out, it doesn't need to be completed
+            if (isRushed && !shouldShowInRushedMode(item)) return true;
+
+            if (item === null || isPipeWrapped(itemId)) return true;
+            if (item === false) return completedItems.has(itemId);
 
             const keys = (item !== null && typeof item === 'object') ? Object.keys(item).filter(k => k !== '_checkable') : [];
             
@@ -1064,17 +1136,32 @@
             container.innerHTML = '';
             
             if (!checklistData) return;
+
+            document.getElementById('rushIndicator').classList.toggle('active', isRushed);
             
             const items = renderItems(checklistData);
             container.appendChild(items);
             
-            // Restore current item or set first incomplete
+            // Restore current item if it's still visible
             if (previousCurrentId && document.querySelector(`[data-item-id="${previousCurrentId}"]`)) {
                 setCurrentItem(previousCurrentId);
             } else {
-                const firstIncomplete = findFirstActionableIncomplete();
-                if (firstIncomplete) {
-                    setCurrentItem(firstIncomplete);
+                // If previous item is hidden or doesn't exist, try first incomplete
+                let targetId = findFirstActionableIncomplete();
+                
+                // If no incomplete item found or it's not visible, find first visible navigable item
+                if (!targetId || !document.querySelector(`[data-item-id="${targetId}"]`)) {
+                    const allItems = buildOrderedItemList();
+                    for (const id of allItems) {
+                        if (isNavigable(id) && document.querySelector(`[data-item-id="${id}"]`)) {
+                            targetId = id;
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetId) {
+                    setCurrentItem(targetId);
                 }
             }
         }
@@ -1170,6 +1257,10 @@
                 const key = keys[i];
                 if (key === '_checkable') continue;
                 const value = data[key];
+
+                // In rushed mode, skip items that have no visible content (neither tasks nor headers/notes)
+                if (isRushed && !shouldShowInRushedMode(value)) continue;
+
                 const itemPath = [...path, key];
                 const itemId = generateItemId(itemPath);
                 
@@ -1184,7 +1275,7 @@
                 itemDiv.dataset.itemId = itemId;
                 if (hasChildren) itemDiv.classList.add('has-children');
                 if (isCompleted && isActionableItem) itemDiv.classList.add('completed');
-                if (isDisplayOnly || isHeader) itemDiv.classList.add('display-only');
+                if (isHeader) itemDiv.classList.add('display-only');
 
                 if (isEditMode) {
                     const editControls = document.createElement('span');
@@ -1260,7 +1351,13 @@
                             setCurrentItem(itemId);
                             toggleItem(itemId, itemPath, true, false);
                         });
-                    } else if (!isDisplayOnly && !isHeader) {
+                    } else if (isNavigable(itemId)) {
+                        itemDiv.style.cursor = 'pointer';
+                        itemDiv.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            setCurrentItem(itemId);
+                        });
+                    } else if (!isHeader) {
                         itemDiv.style.cursor = 'default';
                         itemDiv.addEventListener('click', (e) => {
                             e.stopPropagation();
@@ -1390,7 +1487,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         checklist_name: currentChecklistName,
-                        time_seconds: timeSeconds
+                        time_seconds: timeSeconds,
+                        is_rushed: isRushed
                     })
                 });
 
@@ -1430,10 +1528,10 @@
             const allItems = buildOrderedItemList();
             const currentIndex = allItems.indexOf(currentItemId);
 
-            // Find next actionable item (regardless of completion status)
+            // Find next navigable item (regardless of completion status)
             for (let i = currentIndex + 1; i < allItems.length; i++) {
                 const id = allItems[i];
-                if (isActionable(id)) {
+                if (isNavigable(id)) {
                     setCurrentItem(id);
                     return;
                 }
@@ -1441,7 +1539,7 @@
             // Wrap around
             for (let i = 0; i <= currentIndex; i++) {
                 const id = allItems[i];
-                if (isActionable(id)) {
+                if (isNavigable(id)) {
                     setCurrentItem(id);
                     return;
                 }
@@ -1452,10 +1550,10 @@
             const allItems = buildOrderedItemList();
             const currentIndex = allItems.indexOf(currentItemId);
 
-            // Find previous actionable item (regardless of completion status)
+            // Find previous navigable item (regardless of completion status)
             for (let i = currentIndex - 1; i >= 0; i--) {
                 const id = allItems[i];
-                if (isActionable(id)) {
+                if (isNavigable(id)) {
                     setCurrentItem(id);
                     return;
                 }
@@ -1463,7 +1561,7 @@
             // Wrap around
             for (let i = allItems.length - 1; i >= currentIndex; i--) {
                 const id = allItems[i];
-                if (isActionable(id)) {
+                if (isNavigable(id)) {
                     setCurrentItem(id);
                     return;
                 }
@@ -1631,7 +1729,7 @@
 
             // Simple key match (no modifiers)
             const key = e.key === ' ' ? ' ' : e.key;
-            return key === shortcut;
+            return key === shortcut && !e.ctrlKey && !e.metaKey && !e.altKey;
         }
 
         // Keyboard event handler
@@ -1680,6 +1778,9 @@
             } else if (matchesShortcut(e, shortcuts.toggleTheme)) {
                 e.preventDefault();
                 toggleTheme();
+            } else if (matchesShortcut(e, shortcuts.toggleRushed)) {
+                e.preventDefault();
+                toggleRushed();
             } else if (matchesShortcut(e, shortcuts.showHelp)) {
                 e.preventDefault();
                 showHelp();

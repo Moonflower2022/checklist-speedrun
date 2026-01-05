@@ -29,13 +29,11 @@ SERVICE_ACCOUNT_FILE = os.getenv('SERVICE_ACCOUNT_FILE')
 # Checklist name to column mapping
 CHECKLIST_COLUMN_NAME_MAP = {
     'morning': 'Day',
-    'morning (rushed)': 'Day (rushed)',
     'night': 'Night'
 }
 
 CHECKLIST_COLUMN_NUMBER_MAP = {
     'Day': 2,
-    'Day (rushed)': 3,
     'Night': 4
 }
 
@@ -141,6 +139,7 @@ def log_time():
         data = request.json
         checklist_name = data.get('checklist_name')
         time_seconds = data.get('time_seconds')
+        is_rushed = data.get('is_rushed', False)
 
         if not checklist_name or time_seconds is None:
             return jsonify({'error': 'Missing checklist_name or time_seconds'}), 400
@@ -174,6 +173,9 @@ def log_time():
             return jsonify({'error': f'Could not find date {today} in spreadsheet'}), 404
 
         column_index = CHECKLIST_COLUMN_NUMBER_MAP.get(column_name, 2) - 1  # Zero-based index
+        if is_rushed:
+            column_index += 1
+            
         column_letter = chr(ord('A') + column_index)
 
         # Format time string
@@ -197,9 +199,10 @@ def log_time():
             body=body
         ).execute()
 
+        display_name = column_name + (" (rushed)" if is_rushed else "")
         return jsonify({
             'success': True,
-            'message': f'Logged {time_str} to {column_name} column',
+            'message': f'Logged {time_str} to {display_name} column',
             'updated_cells': result.get('updatedCells', 0)
         })
 

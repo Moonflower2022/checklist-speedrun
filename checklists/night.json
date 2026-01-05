@@ -1,6 +1,6 @@
 {
-  "shower (no skipping!)": true,
-  "what is the SI prefix mnemonic? (look at it afterwards)": true,
+  "shower": false,
+  "what is the SI prefix mnemonic? (look at it afterwards)": false,
   "wind down": {
     "put ziplock in top left of fridge door": true,
     "charge earbuds, phone, computer": true,
@@ -8,17 +8,16 @@
     "nose solution": true,
     "brush": true,
     "floss": true,
-    "log: phys res? echo? sleep data?": true,
+    "log: phys res? echo? sleep data?": false,
     "do !habits": true,
     "put on WHOOP": true,
     "earplugs, turn off all lights, get red light": true
   },
   "reflect": {
-    "how was today w.r.t. habits? w ab operation (includes emotions etc, esp with work)?": {
+    "inner critic items": false,
+    "one important thing w.r.t habits / operation": {
       "habits and operation are the two really important things in my life rn!": null,
-      "esp operation, controls emotions and state of mind, want a strong state of mind generally": null,
-      "things i can do better": null
-    },
-    "anything else notable": true
+      "esp operation, controls emotions and state of mind, want a strong state of mind generally": null
+    }
   }
 }
