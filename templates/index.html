@@ -794,6 +794,7 @@
                     resetTimer: 'r',
                     switchMode: 'm',
                     toggleTheme: 't',
+                    uncheck: 'u',
                     showHelp: '?'
                 };
                 updateHelpModal();
@@ -813,6 +814,7 @@
                 switchMode: 'Switch Mode',
                 toggleTheme: 'Toggle Theme',
                 toggleRushed: 'Toggle Rushed',
+                uncheck: 'Uncheck',
                 showHelp: 'Show Help',
                 undo: 'Undo',
                 redo: 'Redo'
@@ -1615,6 +1617,15 @@
             }
         }
 
+        function uncheckCurrent() {
+            if (currentItemId && isActionable(currentItemId)) {
+                if (completedItems.has(currentItemId)) {
+                    const path = currentItemId.split('::');
+                    toggleItem(currentItemId, path, true, false);
+                }
+            }
+        }
+
         function showHelp() {
             document.getElementById('helpModal').classList.toggle('active');
         }
@@ -1797,6 +1808,9 @@
             } else if (matchesShortcut(e, shortcuts.toggleRushed)) {
                 e.preventDefault();
                 toggleRushed();
+            } else if (matchesShortcut(e, shortcuts.uncheck)) {
+                e.preventDefault();
+                uncheckCurrent();
             } else if (matchesShortcut(e, shortcuts.showHelp)) {
                 e.preventDefault();
                 showHelp();

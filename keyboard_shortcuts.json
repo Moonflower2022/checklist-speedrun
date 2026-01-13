@@ -9,6 +9,7 @@
   "switchMode": "m",
   "toggleTheme": "t",
   "toggleRushed": "r",
+  "uncheck": "u",
   "showHelp": "?",
   "undo": "Meta+z",
   "redo": "Meta+Shift+z"
