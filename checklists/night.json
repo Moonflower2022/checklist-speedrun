@@ -10,7 +10,7 @@
     "do !habits": true,
     "log: echo?": false,
     "[L] log: tracker": {
-      "sheet": "tracker_new_2026.1_processing",
+      "sheet": "tracker_new_2026.1",
       "fields": [
         "How long ago did you eat? (h)",
         "How full do you feel? (1-5)",
@@ -27,5 +27,6 @@
       "habits and operation are the two really important things in my life rn!": null,
       "esp operation, controls emotions and state of mind, want a strong state of mind generally": null
     }
-  }
+  },
+  "meditate for 5m! (or not)": false
 }

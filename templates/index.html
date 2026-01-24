@@ -1108,8 +1108,8 @@
 
                 list.push(itemId);
                 
-                // Recursively add children (maintains order within each level)
-                if (value !== null && value !== undefined && typeof value === 'object' && Object.keys(value).length > 0) {
+                // Recursively add children UNLESS it's a log item
+                if (!key.startsWith('[L]') && value !== null && value !== undefined && typeof value === 'object' && Object.keys(value).length > 0) {
                     buildOrderedItemList(value, itemPath, list);
                 }
             }
@@ -1245,7 +1245,7 @@
             container.appendChild(items);
             
             // Restore current item if it's still visible
-            if (previousCurrentId && document.querySelector(`[data-item-id="${previousCurrentId}"]`)) {
+            if (previousCurrentId && document.querySelector(`[data-item-id="${CSS.escape(previousCurrentId)}"]`)) {
                 setCurrentItem(previousCurrentId);
             } else {
                 // If previous item is hidden or doesn't exist, try first incomplete
@@ -1474,6 +1474,10 @@
                                 } else {
                                     submitBtn.click();
                                 }
+                            } else if (e.key === 'Escape') {
+                                input.blur();
+                                e.preventDefault();
+                                e.stopPropagation();
                             }
                         });
 
@@ -1512,7 +1516,9 @@
                                 statusMsg.textContent = '✓ Logged';
                                 statusMsg.className = 'log-status success';
                                 if (!completedItems.has(itemId)) {
-                                    toggleItem(itemId, itemPath, true, false);
+                                    toggleItem(itemId, itemPath, true, true);
+                                } else {
+                                    moveDown();
                                 }
                             } else {
                                 statusMsg.textContent = 'Error: ' + result.error;
@@ -1720,6 +1726,17 @@
                 if (item.dataset.itemId === itemId) {
                     item.classList.add('current');
                     item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Auto-focus log input if it exists
+                    const path = itemId.split('::');
+                    const key = path[path.length - 1];
+                    if (key && key.startsWith('[L]')) {
+                        const firstInput = item.querySelector('input');
+                        if (firstInput) {
+                            // Small delay to ensure rendering/scrolling doesn't interfere
+                            setTimeout(() => firstInput.focus(), 50);
+                        }
+                    }
                 }
             });
         }
@@ -1792,7 +1809,7 @@
                 const key = path[path.length - 1];
                 
                 if (key.startsWith('[L]') && !completedItems.has(currentItemId)) {
-                    const el = document.querySelector(`[data-item-id="${currentItemId.replace(/:/g, '\\:')}"]`);
+                    const el = document.querySelector(`[data-item-id="${CSS.escape(currentItemId)}"]`);
                     const firstInput = el ? el.querySelector('input') : null;
                     if (firstInput && document.activeElement !== firstInput) {
                         firstInput.focus();

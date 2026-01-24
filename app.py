@@ -132,6 +132,19 @@ def save_checklist(checklist_name):
         app.logger.error(f"Error saving checklist {checklist_name}: {e}")
         return jsonify({'error': str(e)}), 500
 
+def find_row_for_date(values, target_date_obj):
+    """Find the row number for a date, handling various string formats from Sheets"""
+    # Common formats: 2026-01-23, 1/23/2026, 01/23/2026
+    formats = ['%Y-%m-%d', '%-m/%-d/%Y', '%m/%d/%Y']
+    target_strings = {target_date_obj.strftime(fmt) for fmt in formats}
+    
+    for i, row in enumerate(values):
+        if row:
+            cell_value = str(row[0]).strip()
+            if cell_value in target_strings:
+                return i + 1
+    return None
+
 @app.route('/api/log-time', methods=['POST'])
 def log_time():
     """Log completion time to Google Sheets"""
@@ -154,11 +167,11 @@ def log_time():
         if not service:
             return jsonify({'error': 'Could not connect to Google Sheets'}), 500
 
-        # Get today's date in format M/D/YYYY
+        # Get today's date in format YYYY-MM-DD
         now = datetime.now()
         # If it's early morning (before 6 AM), log as the previous day
         target_date = now - timedelta(days=1) if now.hour < 6 else now
-        today = target_date.strftime('%-m/%-d/%Y')
+        today = target_date.strftime('%Y-%m-%d')
 
         # Find today's date in column A
         result = service.spreadsheets().values().get(
@@ -167,7 +180,7 @@ def log_time():
         ).execute()
 
         values = result.get('values', [])
-        row_number = next((i + 1 for i, row in enumerate(values) if row and row[0] == today), None)
+        row_number = find_row_for_date(values, target_date)
 
         if row_number is None:
             return jsonify({'error': f'Could not find date {today} in spreadsheet'}), 404
@@ -213,9 +226,18 @@ def log_time():
         app.logger.error(f"Unexpected error in log_time: {e}")
         return jsonify({'error': str(e)}), 500
 
+def get_column_letter(n):
+    """Convert a zero-based column index to a Google Sheets column letter (e.g., 0 -> A, 27 -> AB)"""
+    letter = ''
+    while n >= 0:
+        n, remainder = divmod(n, 26)
+        letter = chr(65 + remainder) + letter
+        n -= 1
+    return letter
+
 @app.route('/api/append-row', methods=['POST'])
 def append_row():
-    """Append a row of data to a Google Sheet"""
+    """Append data to the row for today (6am shift logic)"""
     try:
         data = request.json
         sheet_name = data.get('sheet_name', SHEET_NAME)
@@ -232,25 +254,61 @@ def append_row():
         if not service:
             return jsonify({'error': 'Could not connect to Google Sheets'}), 500
 
-        # Prepend timestamp
+        # Determine logical today's date (before 6 AM is previous day)
         now = datetime.now()
-        timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
-        row_data = [timestamp] + values
-
-        body = {'values': [row_data]}
+        target_date = now - timedelta(days=1) if now.hour < 6 else now
+        today = target_date.strftime('%Y-%m-%d')
         
-        result = service.spreadsheets().values().append(
+        # Actual timestamp for the log entry
+        timestamp = str(now)
+        new_row_data = [timestamp] + values
+
+        # Find today's date in column A
+        result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range=f"'{sheet_name}'!A1",
-            valueInputOption='USER_ENTERED',
-            insertDataOption='INSERT_ROWS',
-            body=body
+            range=f"'{sheet_name}'!A:A"
         ).execute()
+
+        values_in_a = result.get('values', [])
+        row_number = find_row_for_date(values_in_a, target_date)
+
+        if row_number:
+            # Get the current row to find the first empty column
+            row_result = service.spreadsheets().values().get(
+                spreadsheetId=spreadsheet_id,
+                range=f"'{sheet_name}'!{row_number}:{row_number}"
+            ).execute()
+            
+            row_values = row_result.get('values', [[]])[0]
+            # Find the first empty column after existing data
+            col_index = len(row_values)
+            col_letter = get_column_letter(col_index)
+            
+            range_to_update = f"'{sheet_name}'!{col_letter}{row_number}"
+            body = {'values': [new_row_data]}
+            
+            result = service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=range_to_update,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+        else:
+            # If date not found, create a new row starting with the date
+            # This handles "start as if date didn't exist"
+            body = {'values': [[today] + new_row_data]}
+            result = service.spreadsheets().values().append(
+                spreadsheetId=spreadsheet_id,
+                range=f"'{sheet_name}'!A1",
+                valueInputOption='USER_ENTERED',
+                insertDataOption='INSERT_ROWS',
+                body=body
+            ).execute()
 
         return jsonify({
             'success': True,
             'message': f'Logged to {sheet_name}',
-            'updated_range': result.get('updates', {}).get('updatedRange')
+            'updated_cells': result.get('updates', {}).get('updatedCells', 1)
         })
 
     except Exception as e:
